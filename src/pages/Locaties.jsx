@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import apiFetch from '../utils/api';
+import { supabase } from '../lib/supabase';
 
 function Locaties({ user, onLogout }) {
   const navigate = useNavigate();
@@ -18,9 +18,13 @@ function Locaties({ user, onLogout }) {
 
   const loadLocaties = async () => {
     try {
-      const res = await apiFetch('/api/locaties');
-      const data = await res.json();
-      setLocaties(data);
+      const { data, error } = await supabase
+        .from('locaties')
+        .select('*')
+        .order('straat');
+
+      if (error) throw error;
+      setLocaties(data || []);
     } catch (err) {
       console.error('Fout bij laden locaties:', err);
     }
@@ -34,18 +38,17 @@ function Locaties({ user, onLogout }) {
     if (!nieuweStraat.trim()) return;
 
     try {
-      const res = await apiFetch('/api/locaties', {
-        method: 'POST',
-        body: JSON.stringify({ straat: nieuweStraat })
-      });
+      const { error } = await supabase
+        .from('locaties')
+        .insert({ straat: nieuweStraat.trim() });
 
-      if (res.ok) {
-        setNieuweStraat('');
-        loadLocaties();
-      } else {
-        const error = await res.json();
-        alert(error.error);
+      if (error) {
+        alert(error.message);
+        return;
       }
+
+      setNieuweStraat('');
+      loadLocaties();
     } catch (err) {
       console.error('Fout bij toevoegen locatie:', err);
     }
@@ -73,9 +76,14 @@ function Locaties({ user, onLogout }) {
     }
 
     try {
-      for (const id of geselecteerd) {
-        await apiFetch(`/api/locaties/${id}`, { method: 'DELETE' });
-      }
+      const ids = Array.from(geselecteerd);
+      const { error } = await supabase
+        .from('locaties')
+        .delete()
+        .in('id', ids);
+
+      if (error) throw error;
+
       setGeselecteerd(new Set());
       loadLocaties();
     } catch (err) {
@@ -105,20 +113,20 @@ function Locaties({ user, onLogout }) {
     const locatieId = Array.from(geselecteerd)[0];
 
     try {
-      const res = await apiFetch(`/api/locaties/${locatieId}`, {
-        method: 'PUT',
-        body: JSON.stringify({ straat: editStraat })
-      });
+      const { error } = await supabase
+        .from('locaties')
+        .update({ straat: editStraat.trim() })
+        .eq('id', locatieId);
 
-      if (res.ok) {
-        setEditMode(false);
-        setEditStraat('');
-        setGeselecteerd(new Set());
-        loadLocaties();
-      } else {
-        const error = await res.json();
-        alert(error.error);
+      if (error) {
+        alert(error.message);
+        return;
       }
+
+      setEditMode(false);
+      setEditStraat('');
+      setGeselecteerd(new Set());
+      loadLocaties();
     } catch (err) {
       console.error('Fout bij opslaan locatie:', err);
     }
@@ -130,7 +138,7 @@ function Locaties({ user, onLogout }) {
       <div className="page-header">
         <button onClick={() => navigate('/')} className="back-button">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
         <h1 className="text-2xl font-bold">📍 Locaties</h1>
@@ -166,11 +174,11 @@ function Locaties({ user, onLogout }) {
         ) : (
           <div className="space-y-2">
             {locaties.map((locatie, index) => (
-              <div 
-                key={locatie.id} 
+              <div
+                key={locatie.id}
                 className={`flex items-center p-4 rounded-xl transition-all cursor-pointer
-                  ${geselecteerd.has(locatie.id) 
-                    ? 'bg-gradient-card text-white shadow-button' 
+                  ${geselecteerd.has(locatie.id)
+                    ? 'bg-gradient-card text-white shadow-button'
                     : 'bg-gray-50 hover:bg-gray-100'}`}
                 onClick={() => handleSelecteer(locatie.id)}
               >
@@ -178,7 +186,7 @@ function Locaties({ user, onLogout }) {
                   type="checkbox"
                   className="w-5 h-5 mr-4 cursor-pointer accent-rikken-accent"
                   checked={geselecteerd.has(locatie.id)}
-                  onChange={() => {}}
+                  onChange={() => { }}
                 />
                 <span className="text-lg font-medium">{index + 1}. {locatie.straat}</span>
               </div>
@@ -228,4 +236,3 @@ function Locaties({ user, onLogout }) {
 }
 
 export default Locaties;
-

@@ -1,19 +1,32 @@
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import apiFetch from '../utils/api';
+import { supabase } from '../lib/supabase';
 
 function Home({ user, onLogout }) {
   const navigate = useNavigate();
   const [actiefAvond, setActiefAvond] = useState(null);
 
   useEffect(() => {
-    apiFetch('/api/spelavond/actief')
-      .then(data => {
-        if (data) {
+    // Check for active game night
+    const checkActief = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('spelavonden')
+          .select('*')
+          .eq('status', 'actief')
+          .limit(1)
+          .single();
+
+        if (data && !error) {
           setActiefAvond(data);
         }
-      })
-      .catch(err => console.error('Fout bij ophalen actieve avond:', err));
+      } catch (err) {
+        // No active game night, that's fine
+        console.log('Geen actieve avond gevonden');
+      }
+    };
+
+    checkActief();
   }, []);
 
   const handleNieuweAvond = () => {
@@ -32,7 +45,7 @@ function Home({ user, onLogout }) {
       {/* Modern Header */}
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 24px' }}>
         <div style={{ width: '40px', flexShrink: 0 }}></div>
-        
+
         <h1 className="text-2xl font-bold flex items-center justify-center gap-3 flex-1">
           <span className="text-2xl">♠♥</span>
           <span>Rikken</span>
@@ -44,9 +57,9 @@ function Home({ user, onLogout }) {
           <button
             onClick={() => user?.role === 'admin' && navigate('/admin')}
             disabled={user?.role !== 'admin'}
-            style={{ 
-              width: '40px', 
-              height: '40px', 
+            style={{
+              width: '40px',
+              height: '40px',
               backgroundColor: 'white',
               color: user?.role === 'admin' ? '#1B5E7E' : '#999',
               borderRadius: '50%',
@@ -66,9 +79,9 @@ function Home({ user, onLogout }) {
           </button>
           <button
             onClick={() => navigate('/account')}
-            style={{ 
-              width: '40px', 
-              height: '40px', 
+            style={{
+              width: '40px',
+              height: '40px',
               backgroundColor: 'white',
               color: '#1B5E7E',
               borderRadius: '50%',

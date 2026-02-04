@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import apiFetch from '../utils/api';
+import { supabase } from '../lib/supabase';
 
 function Spelers({ user, onLogout }) {
   const navigate = useNavigate();
@@ -16,8 +16,13 @@ function Spelers({ user, onLogout }) {
 
   const loadSpelers = async () => {
     try {
-      const data = await apiFetch('/api/spelers');
-      setSpelers(data);
+      const { data, error } = await supabase
+        .from('spelers')
+        .select('*')
+        .order('naam');
+
+      if (error) throw error;
+      setSpelers(data || []);
     } catch (err) {
       console.error('Fout bij laden spelers:', err);
     }
@@ -27,19 +32,17 @@ function Spelers({ user, onLogout }) {
     if (!nieuweNaam.trim()) return;
 
     try {
-      const res = await fetch('/api/spelers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ naam: nieuweNaam })
-      });
+      const { error } = await supabase
+        .from('spelers')
+        .insert({ naam: nieuweNaam.trim() });
 
-      if (res.ok) {
-        setNieuweNaam('');
-        loadSpelers();
-      } else {
-        const error = await res.json();
-        alert(error.error);
+      if (error) {
+        alert(error.message);
+        return;
       }
+
+      setNieuweNaam('');
+      loadSpelers();
     } catch (err) {
       console.error('Fout bij toevoegen speler:', err);
     }
@@ -62,9 +65,14 @@ function Spelers({ user, onLogout }) {
     if (!bevestig) return;
 
     try {
-      for (const id of geselecteerd) {
-        await fetch(`/api/spelers/${id}`, { method: 'DELETE' });
-      }
+      const ids = Array.from(geselecteerd);
+      const { error } = await supabase
+        .from('spelers')
+        .delete()
+        .in('id', ids);
+
+      if (error) throw error;
+
       setGeselecteerd(new Set());
       loadSpelers();
     } catch (err) {
@@ -88,20 +96,19 @@ function Spelers({ user, onLogout }) {
 
     const spelerId = Array.from(geselecteerd)[0];
     try {
-      const res = await fetch(`/api/spelers/${spelerId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ naam: editNaam })
-      });
+      const { error } = await supabase
+        .from('spelers')
+        .update({ naam: editNaam.trim() })
+        .eq('id', spelerId);
 
-      if (res.ok) {
-        setEditMode(false);
-        setGeselecteerd(new Set());
-        loadSpelers();
-      } else {
-        const error = await res.json();
-        alert(error.error);
+      if (error) {
+        alert(error.message);
+        return;
       }
+
+      setEditMode(false);
+      setGeselecteerd(new Set());
+      loadSpelers();
     } catch (err) {
       console.error('Fout bij opslaan speler:', err);
     }
@@ -113,7 +120,7 @@ function Spelers({ user, onLogout }) {
       <div className="page-header">
         <button onClick={() => navigate('/')} className="back-button">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
         <h1 className="text-2xl font-bold">👥 Spelers</h1>
@@ -149,11 +156,11 @@ function Spelers({ user, onLogout }) {
         ) : (
           <div className="space-y-2">
             {spelers.map((speler, index) => (
-              <div 
-                key={speler.id} 
+              <div
+                key={speler.id}
                 className={`flex items-center p-4 rounded-xl transition-all cursor-pointer
-                  ${geselecteerd.has(speler.id) 
-                    ? 'bg-gradient-card text-white shadow-button' 
+                  ${geselecteerd.has(speler.id)
+                    ? 'bg-gradient-card text-white shadow-button'
                     : 'bg-gray-50 hover:bg-gray-100'}`}
                 onClick={() => handleSelecteer(speler.id)}
               >
@@ -161,7 +168,7 @@ function Spelers({ user, onLogout }) {
                   type="checkbox"
                   className="w-5 h-5 mr-4 cursor-pointer accent-rikken-accent"
                   checked={geselecteerd.has(speler.id)}
-                  onChange={() => {}}
+                  onChange={() => { }}
                 />
                 <span className="text-lg font-medium">{index + 1}. {speler.naam}</span>
               </div>
@@ -211,4 +218,3 @@ function Spelers({ user, onLogout }) {
 }
 
 export default Spelers;
-
