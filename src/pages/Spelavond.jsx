@@ -820,7 +820,10 @@ function Spelavond() {
 
   // Spelende spelers (actief EN niet stilzittend)
   const spelendeSpelers = actieveSpelers.filter(s => !stilzitters.includes(s.avond_speler_id));
-  const meerdereSpelvormen = settings.filter(s => s.naam?.startsWith('Meerdere'));
+  const meerdereSpelvormen = settings.filter(s =>
+    s.naam?.startsWith('Meerdere') ||
+    ['Misere', 'Piek', 'Open Misère', 'Open Piek', 'Schoppen Mie'].includes(s.naam)
+  );
 
 
   // Check of een speler al Allemaal Piek heeft gedaan
@@ -988,7 +991,7 @@ function Spelavond() {
                     <span className={isDeler && !isInactief ? 'font-extrabold' : ''}>{displayNaam}</span>
                     {isDeler && !isInactief && <span className="ml-1">🎯</span>}
                   </div>
-                  <div className={`text-xl font-bold ${isInactief ? 'text-gray-400' : 'text-gray-800'}`}>
+                  <div className={`text-xl font-bold ${isInactief ? 'text-gray-400' : 'text-gray-900'}`}>
                     {laatsteScore}
                   </div>
                 </div>
