@@ -131,7 +131,7 @@ function Spelavond() {
         id: spelavondData.id,
         datum: spelavondData.datum,
         status: spelavondData.status,
-        start_deler: null, // Will be set when dealer is chosen
+        start_deler: spelavondData.start_deler, // Read from database
         spelers: formattedSpelers,
         rondes: [],
         scores: []
