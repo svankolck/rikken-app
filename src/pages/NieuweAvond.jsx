@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import apiFetch from '../utils/api';
+import { supabase } from '../lib/supabase';
 
 function NieuweAvond() {
   const navigate = useNavigate();
@@ -16,12 +16,13 @@ function NieuweAvond() {
 
   const loadData = async () => {
     try {
-      const [spelersData, locatiesData] = await Promise.all([
-        apiFetch('/api/spelers'),
-        apiFetch('/api/locaties')
+      const [spelersResult, locatiesResult] = await Promise.all([
+        supabase.from('spelers').select('*').order('naam'),
+        supabase.from('locaties').select('*').order('straat')
       ]);
-      setSpelers(spelersData);
-      setLocaties(locatiesData);
+
+      if (spelersResult.data) setSpelers(spelersResult.data);
+      if (locatiesResult.data) setLocaties(locatiesResult.data);
     } catch (err) {
       console.error('Fout bij laden data:', err);
     }
@@ -51,29 +52,37 @@ function NieuweAvond() {
     }
 
     try {
-      const data = await apiFetch('/api/spelavond/start', {
-        method: 'POST',
-        body: JSON.stringify({
+      // Create spelavond
+      const { data: spelavond, error: spelavondError } = await supabase
+        .from('spelavonden')
+        .insert({
           datum,
           locatie_id: parseInt(geselecteerdeLocatie),
-          spelers: geselecteerdeSpelers
+          status: 'actief'
         })
-      });
+        .select()
+        .single();
 
-      navigate(`/spelavond/${data.id}`);
+      if (spelavondError) throw spelavondError;
+
+      // Create avond_spelers entries
+      const avondSpelers = geselecteerdeSpelers.map((spelerId, index) => ({
+        spelavond_id: spelavond.id,
+        speler_id: spelerId,
+        volgorde: index + 1,
+        actief: true
+      }));
+
+      const { error: spelerError } = await supabase
+        .from('avond_spelers')
+        .insert(avondSpelers);
+
+      if (spelerError) throw spelerError;
+
+      navigate(`/spelavond/${spelavond.id}`);
     } catch (err) {
       console.error('Fout bij starten avond:', err);
-      
-      // Als het een token error is, wordt de gebruiker automatisch uitgelogd
-      // Toon alleen een melding als het geen token error is
-      if (err.message && err.message.includes('sessie is verlopen')) {
-        // Gebruiker wordt automatisch uitgelogd, geen alert nodig
-        return;
-      }
-      
-      // Voor andere errors, toon duidelijke melding
-      const errorMessage = err.message || 'Onbekende fout';
-      alert(`Fout bij starten avond: ${errorMessage}`);
+      alert(`Fout bij starten avond: ${err.message}`);
     }
   };
 
@@ -88,7 +97,7 @@ function NieuweAvond() {
       <div className="page-header">
         <button onClick={() => navigate('/')} className="back-button">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
         <h1 className="text-2xl font-bold">🎲 Nieuwe Avond</h1>
@@ -185,11 +194,10 @@ function NieuweAvond() {
       <div className="mt-4 mb-6 flex justify-center">
         <button
           onClick={handleStart}
-          className={`btn-primary text-lg px-12 py-3.5 ${
-            geselecteerdeSpelers.length < 4 || !geselecteerdeLocatie 
-              ? 'opacity-50 cursor-not-allowed' 
+          className={`btn-primary text-lg px-12 py-3.5 ${geselecteerdeSpelers.length < 4 || !geselecteerdeLocatie
+              ? 'opacity-50 cursor-not-allowed'
               : ''
-          }`}
+            }`}
           disabled={geselecteerdeSpelers.length < 4 || !geselecteerdeLocatie}
         >
           🎮 Start Avond
@@ -200,4 +208,3 @@ function NieuweAvond() {
 }
 
 export default NieuweAvond;
-
