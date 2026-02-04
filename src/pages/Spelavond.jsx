@@ -979,13 +979,14 @@ function Spelavond() {
                   key={speler.avond_speler_id}
                   className={`text-center ${isInactief ? 'opacity-50' : ''}`}
                 >
-                  <div className={`font-bold p-2 rounded-xl text-sm shadow-sm mb-2 ${isInactief
-                    ? 'bg-gray-400 text-gray-200'
+                  <div className={`font-bold p-2 rounded-xl text-sm shadow-sm mb-2 border-2 ${isInactief
+                    ? 'bg-gray-400 text-white border-gray-400'
                     : isStilzitter
-                      ? 'bg-orange-400 text-white'
-                      : 'bg-gradient-card text-white'
+                      ? 'bg-orange-400 text-white border-orange-400'
+                      : 'bg-white text-gray-800 border-purple-400'
                     } ${heeftVerdubbelaar && !isInactief ? 'ring-2 ring-red-500' : ''}`}>
-                    <span className={isDeler && !isInactief ? 'text-black font-extrabold' : ''}>{displayNaam}</span>
+                    <span className={isDeler && !isInactief ? 'font-extrabold' : ''}>{displayNaam}</span>
+                    {isDeler && !isInactief && <span className="ml-1">🎯</span>}
                   </div>
                   <div className={`text-xl font-bold ${isInactief ? 'text-gray-400' : 'text-gray-800'}`}>
                     {laatsteScore}
