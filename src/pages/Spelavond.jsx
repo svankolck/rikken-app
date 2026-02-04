@@ -1283,16 +1283,16 @@ function Spelavond() {
                 <button
                   key={speler.avond_speler_id}
                   onClick={() => handleSpelerKlik(speler.avond_speler_id)}
-                  className="btn-primary h-16"
+                  className="btn-primary h-16 text-white shadow-lg"
                 >
                   {speler.naam}
                 </button>
               ))}
               <button
                 onClick={startMeerdereFlow}
-                className="btn-secondary h-16 col-span-2"
+                className="btn-primary h-16 col-span-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white shadow-xl"
               >
-                Meerdere
+                🃏 Meerdere Spelvormen
               </button>
             </div>
           </div>
