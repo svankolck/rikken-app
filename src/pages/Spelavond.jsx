@@ -1240,14 +1240,12 @@ function Spelavond() {
                   {speler.naam}
                 </button>
               ))}
-              {isMeerdereFeatureEnabled && (
-                <button
-                  onClick={startMeerdereFlow}
-                  className="btn-primary h-16 col-span-2"
-                >
-                  Meerdere
-                </button>
-              )}
+              <button
+                onClick={startMeerdereFlow}
+                className="btn-secondary h-16 col-span-2"
+              >
+                Meerdere
+              </button>
             </div>
           </div>
         )}
