@@ -117,6 +117,50 @@ function Spelavond() {
         spelersMap[s.id] = s.naam;
       });
 
+      // Get rondes for this spelavond
+      const { data: rondesData, error: rondesError } = await supabase
+        .from('rondes')
+        .select('*, spel_settings(naam, met_maat, minimaal_slagen)')
+        .eq('spelavond_id', spelavondData.id)
+        .order('ronde_nummer');
+
+      if (rondesError) {
+        console.error('Rondes error:', rondesError);
+        // Continue without rondes if table doesn't exist
+      }
+
+      // Format rondes
+      const formattedRondes = (rondesData || []).map(r => ({
+        id: r.id,
+        ronde_nummer: r.ronde_nummer,
+        spel_naam: r.spel_settings?.naam,
+        uitdager_id: r.uitdager_id,
+        maat_id: r.maat_id,
+        slagen_gehaald: r.slagen_gehaald,
+        gemaakt: r.gemaakt,
+        verdubbeld: r.verdubbeld
+      }));
+
+      // Calculate scores based on rondes
+      // Simple scoring: for now just track +1 for gemaakt, -1 for nat
+      const scores = [];
+      formattedRondes.forEach(ronde => {
+        const punten = ronde.gemaakt ? 10 : -10; // Simplified scoring
+        scores.push({
+          avond_speler_id: ronde.uitdager_id,
+          ronde_nummer: ronde.ronde_nummer,
+          punten: punten
+        });
+        // If there's a maat, they get the same score
+        if (ronde.maat_id) {
+          scores.push({
+            avond_speler_id: ronde.maat_id,
+            ronde_nummer: ronde.ronde_nummer,
+            punten: punten
+          });
+        }
+      });
+
       // Transform data to match expected format
       const formattedSpelers = (avondSpelersData || []).map(as => ({
         avond_speler_id: as.id,
@@ -133,8 +177,8 @@ function Spelavond() {
         status: spelavondData.status,
         start_deler: spelavondData.start_deler, // Read from database
         spelers: formattedSpelers,
-        rondes: [],
-        scores: []
+        rondes: formattedRondes,
+        scores: scores
       };
 
       console.log('Spelavond geladen:', avondObj);
