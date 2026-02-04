@@ -79,36 +79,49 @@ function Spelavond() {
 
   const loadAvond = async () => {
     try {
-      // Get active spelavond with all related data
+      // Get spelavond data
       const { data: spelavondData, error: spelavondError } = await supabase
         .from('spelavonden')
         .select('*')
         .eq('id', parseInt(id))
         .single();
 
-      if (spelavondError) throw spelavondError;
-      if (!spelavondData) return;
+      if (spelavondError) {
+        console.error('Spelavond error:', spelavondError);
+        return;
+      }
+      if (!spelavondData) {
+        console.log('Geen spelavond gevonden voor id:', id);
+        return;
+      }
 
-      // Get avond_spelers with speler names
-      const { data: avondSpelersData, error: spelersError } = await supabase
+      // Get avond_spelers - simple query without joins
+      const { data: avondSpelersData, error: avondSpelersError } = await supabase
         .from('avond_spelers')
-        .select(`
-          id,
-          speler_id,
-          volgorde,
-          actief,
-          spelers(naam)
-        `)
+        .select('*')
         .eq('spelavond_id', spelavondData.id)
         .order('volgorde');
 
-      if (spelersError) throw spelersError;
+      if (avondSpelersError) {
+        console.error('Avond spelers error:', avondSpelersError);
+        return;
+      }
+
+      // Get all spelers to map names
+      const { data: allSpelersData } = await supabase
+        .from('spelers')
+        .select('*');
+
+      const spelersMap = {};
+      (allSpelersData || []).forEach(s => {
+        spelersMap[s.id] = s.naam;
+      });
 
       // Transform data to match expected format
       const formattedSpelers = (avondSpelersData || []).map(as => ({
         avond_speler_id: as.id,
         speler_id: as.speler_id,
-        naam: as.spelers?.naam || 'Onbekend',
+        naam: spelersMap[as.speler_id] || 'Onbekend',
         volgorde: as.volgorde,
         actief: as.actief,
         verdubbelaar: 1 // Default for now
@@ -118,12 +131,13 @@ function Spelavond() {
         id: spelavondData.id,
         datum: spelavondData.datum,
         status: spelavondData.status,
-        start_deler: spelavondData.start_deler,
+        start_deler: null, // Will be set when dealer is chosen
         spelers: formattedSpelers,
         rondes: [],
         scores: []
       };
 
+      console.log('Spelavond geladen:', avondObj);
       setAvond(avondObj);
       berekenScoreboard(avondObj);
     } catch (err) {
@@ -815,10 +829,10 @@ function Spelavond() {
                   className={`text-center ${isInactief ? 'opacity-50' : ''}`}
                 >
                   <div className={`font-bold p-2 rounded-xl text-sm shadow-sm mb-2 ${isInactief
-                      ? 'bg-gray-400 text-gray-200'
-                      : isStilzitter
-                        ? 'bg-orange-400 text-white'
-                        : 'bg-gradient-card text-white'
+                    ? 'bg-gray-400 text-gray-200'
+                    : isStilzitter
+                      ? 'bg-orange-400 text-white'
+                      : 'bg-gradient-card text-white'
                     } ${heeftVerdubbelaar && !isInactief ? 'ring-2 ring-red-500' : ''}`}>
                     <span className={isDeler && !isInactief ? 'text-black font-extrabold' : ''}>{displayNaam}</span>
                   </div>
@@ -930,8 +944,8 @@ function Spelavond() {
                         handleSetStartDeler(speler.avond_speler_id);
                       }}
                       className={`py-2 text-sm rounded-lg ${avond.start_deler === speler.avond_speler_id
-                          ? 'bg-gradient-main text-white font-bold'
-                          : 'bg-gray-100 text-gray-700'
+                        ? 'bg-gradient-main text-white font-bold'
+                        : 'bg-gray-100 text-gray-700'
                         }`}
                     >
                       {speler.naam}
@@ -1087,10 +1101,10 @@ function Spelavond() {
                       <div
                         key={`${ronde.ronde_nummer}-${speler.avond_speler_id}`}
                         className={`text-center p-1 rounded-lg text-xs ${isInactief
-                            ? 'text-gray-400'
-                            : wasStilzitter
-                              ? 'bg-gray-100 text-gray-500'
-                              : 'text-gray-700'
+                          ? 'text-gray-400'
+                          : wasStilzitter
+                            ? 'bg-gray-100 text-gray-500'
+                            : 'text-gray-700'
                           }`}
                       >
                         {scorebord[speler.avond_speler_id]?.[ronde.ronde_nummer] || 0}
@@ -1403,8 +1417,8 @@ function Spelavond() {
                     key={spel.id}
                     onClick={() => !heeftAlPiek && handleSpelvormKlik(spel)}
                     className={`h-16 text-xs leading-tight ${heeftAlPiek
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'btn-primary'
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'btn-primary'
                       }`}
                     disabled={heeftAlPiek}
                     title={heeftAlPiek ? 'Deze speler heeft al Allemaal Piek gedaan' : ''}
@@ -1545,8 +1559,8 @@ function Spelavond() {
                       <button
                         onClick={() => handleAllemaalPiekResultaat(speler.avond_speler_id, true)}
                         className={`py-1.5 text-xs rounded-lg transition-all ${resultaat === true
-                            ? 'bg-green-500 text-white font-bold'
-                            : 'bg-white text-gray-700 border border-gray-300'
+                          ? 'bg-green-500 text-white font-bold'
+                          : 'bg-white text-gray-700 border border-gray-300'
                           }`}
                       >
                         ✓ Gemaakt
@@ -1554,8 +1568,8 @@ function Spelavond() {
                       <button
                         onClick={() => handleAllemaalPiekResultaat(speler.avond_speler_id, false)}
                         className={`py-1.5 text-xs rounded-lg transition-all ${resultaat === false
-                            ? 'bg-red-500 text-white font-bold'
-                            : 'bg-white text-gray-700 border border-gray-300'
+                          ? 'bg-red-500 text-white font-bold'
+                          : 'bg-white text-gray-700 border border-gray-300'
                           }`}
                       >
                         ✗ Nat
