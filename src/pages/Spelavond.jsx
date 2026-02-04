@@ -42,12 +42,12 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import apiFetch from '../utils/api';
+import { supabase } from '../lib/supabase';
 
 function Spelavond() {
   const { id } = useParams();
   const navigate = useNavigate();
-  
+
   const [avond, setAvond] = useState(null);
   const [settings, setSettings] = useState([]);
   const [beslisboom, setBeslisboom] = useState({ stap: 'speler', data: {} });
@@ -64,7 +64,7 @@ function Spelavond() {
     resultaten: {}
   });
   const isMeerdereFeatureEnabled = typeof window !== 'undefined' && Boolean(window.FEATURE_MEERDERE);
-  
+
   useEffect(() => {
     loadAvond();
     loadSettings();
@@ -79,11 +79,53 @@ function Spelavond() {
 
   const loadAvond = async () => {
     try {
-      const data = await apiFetch('/api/spelavond/actief');
-      if (data) {
-        setAvond(data);
-        berekenScoreboard(data);
-      }
+      // Get active spelavond with all related data
+      const { data: spelavondData, error: spelavondError } = await supabase
+        .from('spelavonden')
+        .select('*')
+        .eq('id', parseInt(id))
+        .single();
+
+      if (spelavondError) throw spelavondError;
+      if (!spelavondData) return;
+
+      // Get avond_spelers with speler names
+      const { data: avondSpelersData, error: spelersError } = await supabase
+        .from('avond_spelers')
+        .select(`
+          id,
+          speler_id,
+          volgorde,
+          actief,
+          spelers(naam)
+        `)
+        .eq('spelavond_id', spelavondData.id)
+        .order('volgorde');
+
+      if (spelersError) throw spelersError;
+
+      // Transform data to match expected format
+      const formattedSpelers = (avondSpelersData || []).map(as => ({
+        avond_speler_id: as.id,
+        speler_id: as.speler_id,
+        naam: as.spelers?.naam || 'Onbekend',
+        volgorde: as.volgorde,
+        actief: as.actief,
+        verdubbelaar: 1 // Default for now
+      }));
+
+      const avondObj = {
+        id: spelavondData.id,
+        datum: spelavondData.datum,
+        status: spelavondData.status,
+        start_deler: spelavondData.start_deler,
+        spelers: formattedSpelers,
+        rondes: [],
+        scores: []
+      };
+
+      setAvond(avondObj);
+      berekenScoreboard(avondObj);
     } catch (err) {
       console.error('Fout bij laden avond:', err);
     }
@@ -91,8 +133,13 @@ function Spelavond() {
 
   const loadSettings = async () => {
     try {
-      const data = await apiFetch('/api/settings/spel');
-      setSettings(data);
+      const { data, error } = await supabase
+        .from('spel_settings')
+        .select('*')
+        .order('naam');
+
+      if (error) throw error;
+      setSettings(data || []);
     } catch (err) {
       console.error('Fout bij laden settings:', err);
     }
@@ -100,8 +147,13 @@ function Spelavond() {
 
   const loadAllePlelers = async () => {
     try {
-      const data = await apiFetch('/api/spelers');
-      setAllePlelers(data);
+      const { data, error } = await supabase
+        .from('spelers')
+        .select('*')
+        .order('naam');
+
+      if (error) throw error;
+      setAllePlelers(data || []);
     } catch (err) {
       console.error('Fout bij laden spelers:', err);
     }
@@ -109,12 +161,8 @@ function Spelavond() {
 
   const loadRondesDetails = async () => {
     if (!avond?.id) return;
-    try {
-      const data = await apiFetch(`/api/spelavond/${avond.id}/rondes`);
-      setRondesDetails(data);
-    } catch (err) {
-      console.error('Fout bij laden rondes details:', err);
-    }
+    // For now, set empty - we'll implement full ronde loading later
+    setRondesDetails([]);
   };
 
   const handleDeleteRonde = async (rondeId) => {
@@ -314,16 +362,16 @@ function Spelavond() {
       await slaRondeOp(false, null);
     }
   };
-  
+
   const handleWieVerdubbeldKlik = async (avondSpelerId) => {
     // Sla ronde op met verdubbelaar info
     await slaRondeOp(true, avondSpelerId);
   };
-  
+
   const slaRondeOp = async (verdubbeld, verdubbelaar_speler_id) => {
     // Sla ronde op
     const rondeNummer = (avond.rondes.length || 0) + 1;
-    
+
     try {
       const body = {
         spelavond_id: avond.id,
@@ -335,18 +383,18 @@ function Spelavond() {
         verdubbeld,
         verdubbelaar_speler_id
       };
-      
+
       // Als het Allemaal Piek is, voeg individuele resultaten toe
       if (beslisboom.data.spelInfo?.naam === 'Allemaal Piek') {
         body.allemaal_piek_resultaten = allemaalPiekResultaten;
       }
-      
+
       // Als het Schoppen Mie is, voeg extra data toe
       if (beslisboom.data.spelInfo?.naam === 'Schoppen Mie') {
         body.schoppen_vrouw_id = beslisboom.data.schoppen_vrouw_id;
         body.laatste_slag_id = beslisboom.data.laatste_slag_id;
       }
-      
+
       await apiFetch('/api/spelavond/ronde', {
         method: 'POST',
         body: JSON.stringify(body)
@@ -372,14 +420,14 @@ function Spelavond() {
       alert(`Fout bij opslaan ronde: ${err.message || 'Onbekende fout'}`);
     }
   };
-  
+
   const handleAllemaalPiekResultaat = (avondSpelerId, gemaakt) => {
     setAllemaalPiekResultaten({
       ...allemaalPiekResultaten,
       [avondSpelerId]: gemaakt
     });
   };
-  
+
   const handleAllemaalPiekVolgende = () => {
     // Controleer of alle spelers een keuze hebben
     const alleKeuzeGemaakt = Object.values(allemaalPiekResultaten).every(val => val !== null);
@@ -387,7 +435,7 @@ function Spelavond() {
       alert('Kies voor alle spelers of ze gemaakt of nat zijn gegaan');
       return;
     }
-    
+
     // Ga naar verdubbelen
     setBeslisboom({
       ...beslisboom,
@@ -536,15 +584,15 @@ function Spelavond() {
       alert('Schoppen Mie spelvorm niet gevonden');
       return;
     }
-    
+
     // Gebruik de eerste spelende speler als dummy uitdager_id (database vereist)
     const dummyUitdagerId = spelendeSpelers.length > 0 ? spelendeSpelers[0].avond_speler_id : null;
-    
+
     // Start Schoppen Mie beslisboom
     setBeslisboom({
       stap: 'schoppen_mie_vrouw',
-      data: { 
-        spel_setting_id: schoppenMie.id, 
+      data: {
+        spel_setting_id: schoppenMie.id,
         spelInfo: schoppenMie,
         uitdager_id: dummyUitdagerId, // Database vereist een uitdager_id
         maat_id: null,
@@ -561,7 +609,7 @@ function Spelavond() {
   const alleSpelers = avond.spelers; // Inclusief inactieve spelers voor weergave
   const rondeNummer = (avond.rondes.length || 0) + 1;
   const laatsteRondes = [...(avond.rondes || [])].reverse();
-  
+
   // Bereken huidige deler (roteert per ronde, alleen actieve spelers)
   const getHuidigeDeler = () => {
     if (!avond || !avond.start_deler) return null;
@@ -577,18 +625,18 @@ function Spelavond() {
   const getStilzitters = () => {
     if (actieveSpelers.length < 5 || actieveSpelers.length > 6) return [];
     if (!avond || !avond.start_deler) return [];
-    
+
     // Vind de positie van de startdeler in de actieve spelers lijst
     const startDelerIndex = actieveSpelers.findIndex(s => s.avond_speler_id === avond.start_deler);
     if (startDelerIndex === -1) return [];
-    
+
     // Bereken welke ronde het is (0-based)
     const huidigeRonde = rondeNummer - 1;
-    
+
     // Deler roteert per ronde
     const aantalSpelers = actieveSpelers.length;
     const delerIndex = (startDelerIndex + huidigeRonde) % aantalSpelers;
-    
+
     if (actieveSpelers.length === 5) {
       // Bij 5 spelers: alleen de deler zit stil
       return [actieveSpelers[delerIndex]?.avond_speler_id].filter(Boolean);
@@ -601,23 +649,23 @@ function Spelavond() {
       ].filter(Boolean);
     }
   };
-  
+
   const huidigeDeler = getHuidigeDeler();
   const stilzitters = getStilzitters();
-  
+
   // Spelende spelers (actief EN niet stilzittend)
   const spelendeSpelers = actieveSpelers.filter(s => !stilzitters.includes(s.avond_speler_id));
   const meerdereSpelvormen = settings.filter(s => s.naam?.startsWith('Meerdere'));
 
-  
+
   // Check of een speler al Allemaal Piek heeft gedaan
   const heeftAllemaalPiekGedaan = (avondSpelerId) => {
     if (!avond || !avond.rondes) return false;
-    return avond.rondes.some(ronde => 
+    return avond.rondes.some(ronde =>
       ronde.spel_naam === 'Allemaal Piek' && ronde.uitdager_id === avondSpelerId
     );
   };
-  
+
   // Bereken stilzitters voor een specifieke ronde (bij 5 spelers: alleen deler, bij 6 spelers: deler + overkant)
   const getStilzittersVoorRonde = (rondeNummer) => {
     // Haal de spelers op zoals ze waren tijdens die ronde
@@ -626,18 +674,18 @@ function Spelavond() {
       const eindRonde = s.eind_ronde || 9999;
       return s.actief && rondeNummer >= startRonde && rondeNummer <= eindRonde;
     });
-    
+
     if (spelersInRonde.length < 5 || spelersInRonde.length > 6) return [];
     if (!avond || !avond.start_deler) return [];
-    
+
     // Vind de positie van de startdeler
     const startDelerIndex = spelersInRonde.findIndex(s => s.avond_speler_id === avond.start_deler);
     if (startDelerIndex === -1) return [];
-    
+
     // Bereken deler voor deze specifieke ronde
     const aantalSpelers = spelersInRonde.length;
     const delerIndex = (startDelerIndex + rondeNummer - 1) % aantalSpelers;
-    
+
     if (spelersInRonde.length === 5) {
       // Bij 5 spelers: alleen de deler zit stil
       return [spelersInRonde[delerIndex]?.avond_speler_id].filter(Boolean);
@@ -660,10 +708,10 @@ function Spelavond() {
   const getSlagenOpties = () => {
     const spelInfo = beslisboom.data.spelInfo;
     if (!spelInfo || !spelInfo.minimaal_slagen) return [];
-    
+
     const min = Math.max(spelInfo.minimaal_slagen - 5, 0);
     const max = Math.min(spelInfo.minimaal_slagen + 5, 13);
-    
+
     const opties = [];
     for (let i = min; i <= max; i++) {
       opties.push(i);
@@ -689,7 +737,7 @@ function Spelavond() {
                 Kies wie er begint met delen voordat het spel kan starten.
               </p>
             </div>
-            
+
             <div className="space-y-2">
               {actieveSpelers.map(speler => (
                 <button
@@ -710,7 +758,7 @@ function Spelavond() {
         <div className="flex items-center">
           <button onClick={() => navigate('/')} className="back-button">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
           <h1 className="text-xl font-bold">{formatDatum(avond.datum)}</h1>
@@ -722,8 +770,8 @@ function Spelavond() {
             title="Instellingen"
           >
             <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
-              <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="currentColor" strokeWidth="2"/>
-              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" strokeWidth="2"/>
+              <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="currentColor" strokeWidth="2" />
+              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" strokeWidth="2" />
             </svg>
           </button>
           <button
@@ -732,8 +780,8 @@ function Spelavond() {
             title="Bewerken"
           >
             <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
           <button
@@ -754,7 +802,7 @@ function Spelavond() {
           <div className="grid gap-2 flex-1" style={{ gridTemplateColumns: `repeat(${alleSpelers.length}, 1fr)` }}>
             {alleSpelers.map((speler) => {
               const laatsteScore = scorebord[speler.avond_speler_id]?.[rondeNummer - 1] || 0;
-              const displayNaam = alleSpelers.length > 4 
+              const displayNaam = alleSpelers.length > 4
                 ? speler.naam.split(' ').map(n => n[0]).join('').toUpperCase()
                 : speler.naam;
               const isStilzitter = stilzitters.includes(speler.avond_speler_id);
@@ -762,17 +810,16 @@ function Spelavond() {
               const isInactief = !speler.actief;
               const heeftVerdubbelaar = speler.verdubbelaar === 1;
               return (
-                <div 
-                  key={speler.avond_speler_id} 
+                <div
+                  key={speler.avond_speler_id}
                   className={`text-center ${isInactief ? 'opacity-50' : ''}`}
                 >
-                  <div className={`font-bold p-2 rounded-xl text-sm shadow-sm mb-2 ${
-                    isInactief 
-                      ? 'bg-gray-400 text-gray-200' 
-                      : isStilzitter 
-                        ? 'bg-orange-400 text-white' 
+                  <div className={`font-bold p-2 rounded-xl text-sm shadow-sm mb-2 ${isInactief
+                      ? 'bg-gray-400 text-gray-200'
+                      : isStilzitter
+                        ? 'bg-orange-400 text-white'
                         : 'bg-gradient-card text-white'
-                  } ${heeftVerdubbelaar && !isInactief ? 'ring-2 ring-red-500' : ''}`}>
+                    } ${heeftVerdubbelaar && !isInactief ? 'ring-2 ring-red-500' : ''}`}>
                     <span className={isDeler && !isInactief ? 'text-black font-extrabold' : ''}>{displayNaam}</span>
                   </div>
                   <div className={`text-xl font-bold ${isInactief ? 'text-gray-400' : 'text-gray-800'}`}>
@@ -882,11 +929,10 @@ function Spelavond() {
                         e.stopPropagation();
                         handleSetStartDeler(speler.avond_speler_id);
                       }}
-                      className={`py-2 text-sm rounded-lg ${
-                        avond.start_deler === speler.avond_speler_id 
-                          ? 'bg-gradient-main text-white font-bold' 
+                      className={`py-2 text-sm rounded-lg ${avond.start_deler === speler.avond_speler_id
+                          ? 'bg-gradient-main text-white font-bold'
                           : 'bg-gray-100 text-gray-700'
-                      }`}
+                        }`}
                     >
                       {speler.naam}
                     </button>
@@ -928,9 +974,8 @@ function Spelavond() {
                           moveSpelerUp(index);
                         }}
                         disabled={index === 0}
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                          index === 0 ? 'bg-gray-200 text-gray-400' : 'bg-gradient-main text-white'
-                        }`}
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center ${index === 0 ? 'bg-gray-200 text-gray-400' : 'bg-gradient-main text-white'
+                          }`}
                       >
                         ↑
                       </button>
@@ -942,9 +987,8 @@ function Spelavond() {
                           moveSpelerDown(index);
                         }}
                         disabled={index === actieveSpelers.length - 1}
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                          index === actieveSpelers.length - 1 ? 'bg-gray-200 text-gray-400' : 'bg-gradient-main text-white'
-                        }`}
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center ${index === actieveSpelers.length - 1 ? 'bg-gray-200 text-gray-400' : 'bg-gradient-main text-white'
+                          }`}
                       >
                         ↓
                       </button>
@@ -968,7 +1012,7 @@ function Spelavond() {
                 ×
               </button>
             </div>
-            
+
             {rondesDetails.length === 0 ? (
               <p className="text-gray-500 text-center py-4">Nog geen rondes gespeeld</p>
             ) : (
@@ -1003,7 +1047,7 @@ function Spelavond() {
                         🗑️ Verwijder
                       </button>
                     </div>
-                    
+
                     {/* Scores per speler */}
                     <div className="mt-3 pt-3 border-t border-gray-300">
                       <div className="text-xs font-semibold text-gray-600 mb-2">Scores:</div>
@@ -1040,15 +1084,14 @@ function Spelavond() {
                     const isInactief = !speler.actief;
                     const wasStilzitter = stilzittersRonde.includes(speler.avond_speler_id);
                     return (
-                      <div 
-                        key={`${ronde.ronde_nummer}-${speler.avond_speler_id}`} 
-                        className={`text-center p-1 rounded-lg text-xs ${
-                          isInactief 
-                            ? 'text-gray-400' 
-                            : wasStilzitter 
-                              ? 'bg-gray-100 text-gray-500' 
+                      <div
+                        key={`${ronde.ronde_nummer}-${speler.avond_speler_id}`}
+                        className={`text-center p-1 rounded-lg text-xs ${isInactief
+                            ? 'text-gray-400'
+                            : wasStilzitter
+                              ? 'bg-gray-100 text-gray-500'
                               : 'text-gray-700'
-                        }`}
+                          }`}
                       >
                         {scorebord[speler.avond_speler_id]?.[ronde.ronde_nummer] || 0}
                       </div>
@@ -1099,7 +1142,7 @@ function Spelavond() {
                 className="back-button"
               >
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
               <p className="font-semibold text-gray-700 flex-1 text-center mr-8">Meerdere: kies spelers</p>
@@ -1147,7 +1190,7 @@ function Spelavond() {
                 className="back-button"
               >
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
               <p className="font-semibold text-gray-700 flex-1 text-center mr-8">Meerdere: kies spelvorm</p>
@@ -1177,7 +1220,7 @@ function Spelavond() {
                 className="back-button"
               >
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
               <p className="font-semibold text-gray-700 flex-1 text-center mr-8">Meerdere: resultaten</p>
@@ -1232,7 +1275,7 @@ function Spelavond() {
                 className="back-button"
               >
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
               <p className="font-semibold text-gray-700 flex-1 text-center mr-8">Verdubbelen?</p>
@@ -1262,7 +1305,7 @@ function Spelavond() {
                 className="back-button"
               >
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
               <p className="font-semibold text-gray-700 flex-1 text-center mr-8">Wie heeft verdubbeld?</p>
@@ -1297,7 +1340,7 @@ function Spelavond() {
                 className="back-button"
               >
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
               <p className="font-semibold text-gray-700 flex-1 text-center mr-8">Kies spelvorm</p>
@@ -1336,7 +1379,7 @@ function Spelavond() {
                 className="back-button"
               >
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
               <p className="font-semibold text-gray-700 flex-1 text-center mr-8">Alleen - kies variant</p>
@@ -1359,11 +1402,10 @@ function Spelavond() {
                   <button
                     key={spel.id}
                     onClick={() => !heeftAlPiek && handleSpelvormKlik(spel)}
-                    className={`h-16 text-xs leading-tight ${
-                      heeftAlPiek 
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                    className={`h-16 text-xs leading-tight ${heeftAlPiek
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         : 'btn-primary'
-                    }`}
+                      }`}
                     disabled={heeftAlPiek}
                     title={heeftAlPiek ? 'Deze speler heeft al Allemaal Piek gedaan' : ''}
                   >
@@ -1383,7 +1425,7 @@ function Spelavond() {
                 className="back-button"
               >
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
               <p className="font-semibold text-gray-700 flex-1 text-center mr-8">Kies maat</p>
@@ -1412,26 +1454,26 @@ function Spelavond() {
                 onClick={() => {
                   if (beslisboom.data.maat_id) {
                     // Kwam van maat stap (met maat spellen)
-                    setBeslisboom({ 
-                      stap: 'maat', 
-                      data: { 
-                        uitdager_id: beslisboom.data.uitdager_id, 
-                        spel_setting_id: beslisboom.data.spel_setting_id, 
-                        spelInfo: beslisboom.data.spelInfo 
-                      } 
+                    setBeslisboom({
+                      stap: 'maat',
+                      data: {
+                        uitdager_id: beslisboom.data.uitdager_id,
+                        spel_setting_id: beslisboom.data.spel_setting_id,
+                        spelInfo: beslisboom.data.spelInfo
+                      }
                     });
                   } else {
                     // Kwam van alleen stap (alleen spellen)
-                    setBeslisboom({ 
-                      stap: 'alleen', 
-                      data: { uitdager_id: beslisboom.data.uitdager_id } 
+                    setBeslisboom({
+                      stap: 'alleen',
+                      data: { uitdager_id: beslisboom.data.uitdager_id }
                     });
                   }
                 }}
                 className="back-button"
               >
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
               <p className="font-semibold text-gray-700 flex-1 text-center mr-8">Hoeveel slagen?</p>
@@ -1458,7 +1500,7 @@ function Spelavond() {
                 className="back-button"
               >
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
               <p className="font-semibold text-gray-700 flex-1 text-center mr-8">Resultaat</p>
@@ -1488,7 +1530,7 @@ function Spelavond() {
                 className="back-button"
               >
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
               <p className="font-semibold text-gray-700 flex-1 text-center mr-8">Allemaal Piek</p>
@@ -1502,21 +1544,19 @@ function Spelavond() {
                     <div className="grid grid-cols-2 gap-2 flex-1">
                       <button
                         onClick={() => handleAllemaalPiekResultaat(speler.avond_speler_id, true)}
-                        className={`py-1.5 text-xs rounded-lg transition-all ${
-                          resultaat === true
+                        className={`py-1.5 text-xs rounded-lg transition-all ${resultaat === true
                             ? 'bg-green-500 text-white font-bold'
                             : 'bg-white text-gray-700 border border-gray-300'
-                        }`}
+                          }`}
                       >
                         ✓ Gemaakt
                       </button>
                       <button
                         onClick={() => handleAllemaalPiekResultaat(speler.avond_speler_id, false)}
-                        className={`py-1.5 text-xs rounded-lg transition-all ${
-                          resultaat === false
+                        className={`py-1.5 text-xs rounded-lg transition-all ${resultaat === false
                             ? 'bg-red-500 text-white font-bold'
                             : 'bg-white text-gray-700 border border-gray-300'
-                        }`}
+                          }`}
                       >
                         ✗ Nat
                       </button>
@@ -1540,50 +1580,50 @@ function Spelavond() {
               <button
                 onClick={() => {
                   const spelInfo = beslisboom.data.spelInfo;
-                  
+
                   if (spelInfo?.met_maat || spelInfo?.naam?.includes('alleen')) {
                     // Kwam van slagen stap (met maat of alleen spellen)
-                    setBeslisboom({ 
-                      stap: 'slagen', 
-                      data: { 
-                        uitdager_id: beslisboom.data.uitdager_id, 
-                        spel_setting_id: beslisboom.data.spel_setting_id, 
+                    setBeslisboom({
+                      stap: 'slagen',
+                      data: {
+                        uitdager_id: beslisboom.data.uitdager_id,
+                        spel_setting_id: beslisboom.data.spel_setting_id,
                         spelInfo: beslisboom.data.spelInfo,
-                        maat_id: beslisboom.data.maat_id 
-                      } 
+                        maat_id: beslisboom.data.maat_id
+                      }
                     });
                   } else if (spelInfo?.naam === 'Allemaal Piek') {
                     // Kwam van allemaal piek stap
-                    setBeslisboom({ 
-                      stap: 'allemaal_piek', 
-                      data: { 
-                        uitdager_id: beslisboom.data.uitdager_id, 
-                        spel_setting_id: beslisboom.data.spel_setting_id, 
-                        spelInfo: beslisboom.data.spelInfo 
-                      } 
+                    setBeslisboom({
+                      stap: 'allemaal_piek',
+                      data: {
+                        uitdager_id: beslisboom.data.uitdager_id,
+                        spel_setting_id: beslisboom.data.spel_setting_id,
+                        spelInfo: beslisboom.data.spelInfo
+                      }
                     });
                   } else if (spelInfo?.naam === 'Schoppen Mie') {
                     // Kwam van schoppen mie laatste stap
-                    setBeslisboom({ 
-                      stap: 'schoppen_mie_laatste', 
-                      data: { ...beslisboom.data } 
+                    setBeslisboom({
+                      stap: 'schoppen_mie_laatste',
+                      data: { ...beslisboom.data }
                     });
                   } else {
                     // Kwam van gemaakt stap (andere speciale spellen)
-                    setBeslisboom({ 
-                      stap: 'gemaakt', 
-                      data: { 
-                        uitdager_id: beslisboom.data.uitdager_id, 
-                        spel_setting_id: beslisboom.data.spel_setting_id, 
-                        spelInfo: beslisboom.data.spelInfo 
-                      } 
+                    setBeslisboom({
+                      stap: 'gemaakt',
+                      data: {
+                        uitdager_id: beslisboom.data.uitdager_id,
+                        spel_setting_id: beslisboom.data.spel_setting_id,
+                        spelInfo: beslisboom.data.spelInfo
+                      }
                     });
                   }
                 }}
                 className="back-button"
               >
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
               <p className="font-semibold text-gray-700 flex-1 text-center mr-8">Verdubbelen?</p>
@@ -1609,14 +1649,14 @@ function Spelavond() {
           <div className="space-y-4">
             <div className="flex items-center mb-4">
               <button
-                onClick={() => setBeslisboom({ 
-                  stap: 'verdubbelen', 
+                onClick={() => setBeslisboom({
+                  stap: 'verdubbelen',
                   data: beslisboom.data
                 })}
                 className="back-button"
               >
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
               <p className="font-semibold text-gray-700 flex-1 text-center mr-8">Wie heeft verdubbeld?</p>
@@ -1675,7 +1715,7 @@ function Spelavond() {
                 className="back-button"
               >
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
               <p className="font-semibold text-gray-700 flex-1 text-center mr-8">Wie heeft de laatste slag?</p>
