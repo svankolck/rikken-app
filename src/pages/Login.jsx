@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import apiFetch from '../utils/api';
+import { supabase } from '../lib/supabase';
 
 export default function Login({ onLogin }) {
   const navigate = useNavigate();
@@ -30,22 +30,24 @@ export default function Login({ onLogin }) {
     setError('');
 
     try {
-      const data = await apiFetch('/api/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password
-        })
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password
       });
 
-      // Save token to localStorage
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
+      if (authError) throw authError;
 
-      onLogin(data.user);
+      // Create user object for app state
+      const user = {
+        id: data.user.id,
+        email: data.user.email,
+        role: data.user.user_metadata?.role || 'display'
+      };
+
+      onLogin(user);
       navigate('/');
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Inloggen mislukt');
     } finally {
       setLoading(false);
     }
@@ -57,24 +59,33 @@ export default function Login({ onLogin }) {
     setError('');
     setSuccess('');
 
+    if (formData.password !== formData.passwordConfirm) {
+      setError('Wachtwoorden komen niet overeen');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const data = await apiFetch('/api/auth/register', {
-        method: 'POST',
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-          passwordConfirm: formData.passwordConfirm
-        })
+      const { data, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            role: 'display' // Default role for new users
+          }
+        }
       });
 
-      setSuccess(data.message || 'Registration successful! Please wait for admin approval.');
+      if (authError) throw authError;
+
+      setSuccess('Registratie gelukt! Check je email om te bevestigen.');
       setFormData({ email: '', password: '', passwordConfirm: '' });
       setTimeout(() => {
         setIsRegistering(false);
         setSuccess('');
       }, 3000);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Registratie mislukt');
     } finally {
       setLoading(false);
     }
@@ -85,7 +96,7 @@ export default function Login({ onLogin }) {
       <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-8">
         <h1 className="text-3xl font-bold text-center mb-2 text-gray-800">🎲 Rikken</h1>
         <p className="text-center text-gray-600 mb-8">
-          {isRegistering ? 'Create an account' : 'Sign in to continue'}
+          {isRegistering ? 'Maak een account' : 'Log in om door te gaan'}
         </p>
 
         {error && (
@@ -108,14 +119,14 @@ export default function Login({ onLogin }) {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              placeholder="your@email.com"
+              placeholder="jouw@email.com"
               required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Wachtwoord</label>
             <input
               type="password"
               name="password"
@@ -129,7 +140,7 @@ export default function Login({ onLogin }) {
 
           {isRegistering && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Bevestig Wachtwoord</label>
               <input
                 type="password"
                 name="passwordConfirm"
@@ -147,13 +158,13 @@ export default function Login({ onLogin }) {
             disabled={loading}
             className="w-full bg-gradient-to-r from-cyan-500 to-teal-500 text-white py-2 rounded-lg font-semibold hover:from-cyan-600 hover:to-teal-600 disabled:opacity-50 transition"
           >
-            {loading ? 'Please wait...' : (isRegistering ? 'Register' : 'Sign In')}
+            {loading ? 'Even geduld...' : (isRegistering ? 'Registreren' : 'Inloggen')}
           </button>
         </form>
 
         <div className="mt-6 text-center">
           <p className="text-gray-600 text-sm">
-            {isRegistering ? 'Already have an account?' : "Don't have an account?"}{' '}
+            {isRegistering ? 'Heb je al een account?' : 'Nog geen account?'}{' '}
             <button
               onClick={() => {
                 setIsRegistering(!isRegistering);
@@ -162,14 +173,10 @@ export default function Login({ onLogin }) {
               }}
               className="text-cyan-600 hover:text-cyan-700 font-semibold"
             >
-              {isRegistering ? 'Sign In' : 'Register'}
+              {isRegistering ? 'Inloggen' : 'Registreren'}
             </button>
           </p>
         </div>
-
-        <p className="mt-4 text-xs text-gray-500 text-center">
-          {isRegistering && 'After registering, wait for admin approval to access the app.'}
-        </p>
       </div>
     </div>
   );

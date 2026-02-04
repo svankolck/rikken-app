@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import apiFetch from './utils/api';
+import { supabase } from './lib/supabase';
 import Home from './pages/Home';
 import Spelers from './pages/Spelers';
 import Locaties from './pages/Locaties';
@@ -33,51 +33,43 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [features, setFeatures] = useState({});
 
-  // Check if user is already logged in on mount
+  // Check for existing Supabase session on mount
   useEffect(() => {
-    const loadApp = async () => {
-      // Load feature flags (try multiple times in case of timing issues)
-      let featuresLoaded = false;
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        try {
-          console.log(`Loading features, attempt ${attempt}...`);
-          const featuresData = await apiFetch('/api/spelavond/features');
+    const initAuth = async () => {
+      // Get current session
+      const { data: { session } } = await supabase.auth.getSession();
 
-          setFeatures(featuresData);
-          window.FEATURE_MEERDERE = featuresData.FEATURE_MEERDERE;
-          console.log('Features loaded successfully:', featuresData);
-          featuresLoaded = true;
-          break;
-        } catch (error) {
-          console.log(`Features load attempt ${attempt} failed:`, error);
-          if (attempt < 3) {
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
-          }
-        }
-      }
-
-      if (!featuresLoaded) {
-        console.log('Could not load features after 3 attempts, using fallback');
-        // Fallback: assume feature is enabled if server is running with FEATURE_MEERDERE
-        window.FEATURE_MEERDERE = true; // Default to enabled for development
-        console.log('Using fallback FEATURE_MEERDERE:', window.FEATURE_MEERDERE);
-      }
-
-      // Check for existing token
-      const token = localStorage.getItem('token');
-      const savedUser = localStorage.getItem('user');
-
-      if (token && savedUser) {
+      if (session?.user) {
         setIsAuthenticated(true);
-        setUser(JSON.parse(savedUser));
+        setUser({
+          id: session.user.id,
+          email: session.user.email,
+          role: session.user.user_metadata?.role || 'admin' // Default to admin for now
+        });
       }
 
       setLoading(false);
     };
 
-    loadApp();
+    initAuth();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setIsAuthenticated(true);
+        setUser({
+          id: session.user.id,
+          email: session.user.email,
+          role: session.user.user_metadata?.role || 'admin'
+        });
+      } else {
+        setIsAuthenticated(false);
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleLogin = (userData) => {
@@ -85,9 +77,8 @@ function App() {
     setIsAuthenticated(true);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
     setIsAuthenticated(false);
   };
@@ -97,7 +88,7 @@ function App() {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50 flex items-center justify-center">
         <div className="text-center">
           <div className="text-4xl mb-4">🎲</div>
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-gray-600">Laden...</p>
         </div>
       </div>
     );
