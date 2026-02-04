@@ -49,49 +49,125 @@ function Eindstand({ user, onLogout }) {
         spelersMap[s.id] = s.naam;
       });
 
-      // Load rondes
+      // Load rondes with spel_settings and punten_settings
       const { data: rondesData } = await supabase
         .from('rondes')
-        .select('*')
+        .select('*, spel_settings(id, naam, met_maat, minimaal_slagen, punten_settings(gemaakt, overslag, nat, onderslag))')
         .eq('spelavond_id', spelavondData.id)
         .order('ronde_nummer');
 
-      // Calculate scores per player per round
+      // Helper function to get stilzitters for a specific round
+      const avondSpelerIds = (avondSpelersData || []).map(as => as.id);
+      const getStilzitters = (rondeNr) => {
+        if (!spelavondData.start_deler) return [];
+        const numSpelers = avondSpelerIds.length;
+        if (numSpelers < 5) return [];
+
+        const startIndex = avondSpelerIds.indexOf(spelavondData.start_deler);
+        const delerIndex = (startIndex + (rondeNr - 1)) % numSpelers;
+        const delerId = avondSpelerIds[delerIndex];
+
+        if (numSpelers === 5) return [delerId];
+        if (numSpelers === 6) {
+          const tegenoverIndex = (delerIndex + 3) % numSpelers;
+          return [delerId, avondSpelerIds[tegenoverIndex]];
+        }
+        return [];
+      };
+
+      // Calculate scores
       const scoreBoard = {};
       const spelerTotalen = {};
-
       (avondSpelersData || []).forEach(as => {
         scoreBoard[as.id] = {};
         spelerTotalen[as.id] = 0;
       });
 
-      (rondesData || []).forEach(ronde => {
-        const punten = ronde.gemaakt ? 10 : -10; // Simplified scoring
-
-        // Score for uitdager
-        if (scoreBoard[ronde.uitdager_id]) {
-          scoreBoard[ronde.uitdager_id][ronde.ronde_nummer] =
-            (scoreBoard[ronde.uitdager_id][ronde.ronde_nummer] || 0) + punten;
-          spelerTotalen[ronde.uitdager_id] += punten;
-        }
-
-        // Score for maat if exists
-        if (ronde.maat_id && scoreBoard[ronde.maat_id]) {
-          scoreBoard[ronde.maat_id][ronde.ronde_nummer] =
-            (scoreBoard[ronde.maat_id][ronde.ronde_nummer] || 0) + punten;
-          spelerTotalen[ronde.maat_id] += punten;
-        }
+      // Group rounds by number
+      const roundsByNr = {};
+      (rondesData || []).forEach(r => {
+        if (!roundsByNr[r.ronde_nummer]) roundsByNr[r.ronde_nummer] = [];
+        roundsByNr[r.ronde_nummer].push(r);
       });
 
-      // Build eindstand array sorted by total points
+      Object.keys(roundsByNr).sort((a, b) => parseInt(a) - parseInt(b)).forEach(rondeNrStr => {
+        const rondeNr = parseInt(rondeNrStr);
+        const rows = roundsByNr[rondeNr];
+        const currentStilzitters = getStilzitters(rondeNr);
+        const actieveSpelersInRonde = avondSpelerIds.filter(id => !currentStilzitters.includes(id));
+
+        rows.forEach(r => {
+          const isMetMaat = r.spel_settings?.met_maat;
+          const puntenConfig = r.spel_settings?.punten_settings?.[0] || { gemaakt: 5, overslag: 1, nat: -10, onderslag: -1 };
+          const multiplier = r.verdubbeld ? 2 : 1;
+          const rondeScores = [];
+
+          if (rows.length === 1) {
+            // Standard Solo or Maat
+            if (r.spel_settings?.naam === 'Schoppen Mie') {
+              const vrouwId = r.schoppen_vrouw_id;
+              const laatsteId = r.laatste_slag_id;
+              const basis = puntenConfig.gemaakt || 5;
+
+              if (vrouwId && vrouwId === laatsteId) {
+                // Bonus holder of both: 4x basis
+                rondeScores.push({ id: vrouwId, p: basis * 4 * multiplier });
+              } else {
+                if (vrouwId) rondeScores.push({ id: vrouwId, p: (puntenConfig.gemaakt || 5) * multiplier });
+                if (laatsteId) rondeScores.push({ id: laatsteId, p: (puntenConfig.gemaakt || 5) * multiplier });
+              }
+            } else if (r.gemaakt) {
+              const uitdagers = [r.uitdager_id];
+              if (r.maat_id) uitdagers.push(r.maat_id);
+              const tegenspelers = actieveSpelersInRonde.filter(id => !uitdagers.includes(id));
+              let base = puntenConfig.gemaakt || 5;
+              if (r.minimaal_slagen && r.slagen_gehaald > r.minimaal_slagen) {
+                base += (puntenConfig.overslag || 1) * (r.slagen_gehaald - r.minimaal_slagen);
+              }
+              const finalPoints = Math.round(base * multiplier);
+              tegenspelers.forEach(id => rondeScores.push({ id, p: finalPoints }));
+            } else {
+              const uitdagers = [r.uitdager_id];
+              if (r.maat_id) uitdagers.push(r.maat_id);
+              let base = Math.abs(puntenConfig.nat || 10);
+              if (r.minimaal_slagen && r.slagen_gehaald < r.minimaal_slagen) {
+                base += Math.abs(puntenConfig.onderslag || 1) * (r.minimaal_slagen - r.slagen_gehaald);
+              }
+              const soloFactor = (!isMetMaat && !r.maat_id) ? 3 : 1;
+              const finalPoints = Math.round(base * soloFactor * multiplier);
+              uitdagers.forEach(id => rondeScores.push({ id, p: finalPoints }));
+            }
+          } else {
+            // Meerdere
+            if (r.gemaakt) {
+              const anderen = actieveSpelersInRonde.filter(id => id !== r.uitdager_id);
+              const finalPoints = Math.round((puntenConfig.gemaakt || 5) * multiplier);
+              anderen.forEach(id => rondeScores.push({ id, p: finalPoints }));
+            } else {
+              const finalPoints = Math.round((puntenConfig.gemaakt || 5) * 3 * multiplier);
+              rondeScores.push({ id: r.uitdager_id, p: finalPoints });
+            }
+          }
+
+          // Apply to scoreboard and totals
+          rondeScores.forEach(rs => {
+            if (scoreBoard[rs.id]) {
+              scoreBoard[rs.id][rondeNr] = (scoreBoard[rs.id][rondeNr] || 0) + rs.p;
+              spelerTotalen[rs.id] += rs.p;
+            }
+          });
+        });
+      });
+
+      // Build eindstand array sorted by total points (LOWEST score wins)
       const eindstandArr = (avondSpelersData || []).map(as => ({
         avond_speler_id: as.id,
         naam: spelersMap[as.speler_id] || 'Onbekend',
         totaal_punten: spelerTotalen[as.id] || 0
-      })).sort((a, b) => b.totaal_punten - a.totaal_punten);
+      })).sort((a, b) => a.totaal_punten - b.totaal_punten);
 
-      // Get unique round numbers
-      const rondeNummers = [...new Set((rondesData || []).map(r => r.ronde_nummer))].sort((a, b) => a - b);
+      // Unique round numbers
+      const rondeNummers = Object.keys(roundsByNr).map(n => parseInt(n)).sort((a, b) => a - b);
 
       setEindstand(eindstandArr);
       setRondes(rondeNummers);
@@ -229,9 +305,9 @@ function Eindstand({ user, onLogout }) {
             <div
               key={speler.avond_speler_id}
               className={`flex items-center justify-between p-4 rounded-xl shadow-sm ${index === 0 ? 'bg-yellow-400' :
-                  index === 1 ? 'bg-gray-300' :
-                    index === 2 ? 'bg-orange-400' :
-                      'bg-gray-100'
+                index === 1 ? 'bg-gray-300' :
+                  index === 2 ? 'bg-orange-400' :
+                    'bg-gray-100'
                 }`}
             >
               <div className="flex items-center gap-3">

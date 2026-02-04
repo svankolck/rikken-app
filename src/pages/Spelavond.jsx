@@ -138,6 +138,9 @@ function Spelavond() {
         punten: r.spel_settings?.punten_settings?.[0] || { gemaakt: 5, overslag: 1, nat: -10, onderslag: -1 },
         uitdager_id: r.uitdager_id,
         maat_id: r.maat_id,
+        schoppen_vrouw_id: r.schoppen_vrouw_id,
+        laatste_slag_id: r.laatste_slag_id,
+        verdubbelaar_speler_id: r.verdubbelaar_speler_id,
         slagen_gehaald: r.slagen_gehaald,
         gemaakt: r.gemaakt,
         verdubbeld: r.verdubbeld
@@ -147,65 +150,99 @@ function Spelavond() {
       const scores = [];
       const avondSpelerIds = (avondSpelersData || []).map(as => as.id);
 
-      formattedRondes.forEach(ronde => {
-        const puntenConfig = ronde.punten;
-        const isMetMaat = ronde.met_maat;
-        const spelers = [ronde.uitdager_id];
-        if (ronde.maat_id) spelers.push(ronde.maat_id);
+      // Helper function to get stilzitters for a specific round
+      const getStilzitters = (rondeNr) => {
+        if (!spelavondData.start_deler) return [];
+        const numSpelers = avondSpelerIds.length;
+        if (numSpelers < 5) return []; // No stilzitters for 4 players
 
-        // Other players (stilzitters)
-        const stilzitters = avondSpelerIds.filter(id => !spelers.includes(id));
+        const startIndex = avondSpelerIds.indexOf(spelavondData.start_deler);
+        const delerIndex = (startIndex + (rondeNr - 1)) % numSpelers;
+        const delerId = avondSpelerIds[delerIndex];
 
-        let puntenVoorSpelers = 0;
-        let puntenVoorStilzitters = 0;
+        if (numSpelers === 5) return [delerId];
+        if (numSpelers === 6) {
+          const tegenoverIndex = (delerIndex + 3) % numSpelers;
+          return [delerId, avondSpelerIds[tegenoverIndex]];
+        }
+        return [];
+      };
 
-        if (ronde.gemaakt) {
-          // Spel gemaakt
-          puntenVoorSpelers = puntenConfig.gemaakt || 5;
-          // Add overslag bonus if applicable
-          if (ronde.minimaal_slagen && ronde.slagen_gehaald > ronde.minimaal_slagen) {
-            puntenVoorSpelers += (puntenConfig.overslag || 1) * (ronde.slagen_gehaald - ronde.minimaal_slagen);
-          }
-          // For "alleen" games like Misère/Piek: stilzitters lose points (pay the player)
-          if (!isMetMaat) {
-            puntenVoorStilzitters = -(puntenConfig.gemaakt || 5);
+      // Group rounds by ronde_nummer to handle Meerdere
+      const roundsByNr = {};
+      formattedRondes.forEach(r => {
+        if (!roundsByNr[r.ronde_nummer]) roundsByNr[r.ronde_nummer] = [];
+        roundsByNr[r.ronde_nummer].push(r);
+      });
+
+      Object.keys(roundsByNr).sort((a, b) => parseInt(a) - parseInt(b)).forEach(rondeNrStr => {
+        const rondeNr = parseInt(rondeNrStr);
+        const rows = roundsByNr[rondeNr];
+        const currentStilzitters = getStilzitters(rondeNr);
+        const actieveSpelersInRonde = avondSpelerIds.filter(id => !currentStilzitters.includes(id));
+
+        if (rows.length === 1) {
+          const ronde = rows[0];
+          const isMetMaat = ronde.met_maat;
+          const uitdagers = [ronde.uitdager_id];
+          if (ronde.maat_id) uitdagers.push(ronde.maat_id);
+          const tegenspelers = actieveSpelersInRonde.filter(id => !uitdagers.includes(id));
+
+          const puntenConfig = ronde.punten;
+          const multiplier = ronde.verdubbeld ? 2 : 1;
+
+          if (ronde.spel_naam === 'Schoppen Mie') {
+            const vrouwId = ronde.schoppen_vrouw_id;
+            const laatsteId = ronde.laatste_slag_id;
+            const basis = puntenConfig.gemaakt || 5;
+
+            if (vrouwId && vrouwId === laatsteId) {
+              // Bonus: holder of both gets 2x the total (2 * 2 * basis)
+              scores.push({ avond_speler_id: vrouwId, ronde_nummer: rondeNr, punten: basis * 4 * multiplier });
+            } else {
+              if (vrouwId) scores.push({ avond_speler_id: vrouwId, ronde_nummer: rondeNr, punten: basis * multiplier });
+              if (laatsteId) scores.push({ avond_speler_id: laatsteId, ronde_nummer: rondeNr, punten: basis * multiplier });
+            }
+          } else if (ronde.gemaakt) {
+            // Game made: opponents (tegenspelers) get points
+            let base = puntenConfig.gemaakt || 5;
+            if (ronde.minimaal_slagen && ronde.slagen_gehaald > ronde.minimaal_slagen) {
+              base += (puntenConfig.overslag || 1) * (ronde.slagen_gehaald - ronde.minimaal_slagen);
+            }
+            const finalPoints = Math.round(base * multiplier);
+            tegenspelers.forEach(id => scores.push({ avond_speler_id: id, ronde_nummer: rondeNr, punten: finalPoints }));
+          } else {
+            // Game failed (nat): challengers (uitdagers) get points
+            let base = Math.abs(puntenConfig.nat || 10);
+            if (ronde.minimaal_slagen && ronde.slagen_gehaald < ronde.minimaal_slagen) {
+              const tekort = ronde.minimaal_slagen - ronde.slagen_gehaald;
+              base += Math.abs(puntenConfig.onderslag || 1) * tekort;
+            }
+            // For solo games (Misere/Piek), uitdager gets 3x base value if nat
+            const soloFactor = (!isMetMaat && !ronde.maat_id) ? 3 : 1;
+            const finalPoints = Math.round(base * soloFactor * multiplier);
+            uitdagers.forEach(id => scores.push({ avond_speler_id: id, ronde_nummer: rondeNr, punten: finalPoints }));
           }
         } else {
-          // Spel nat (niet gemaakt)
-          puntenVoorSpelers = puntenConfig.nat || -10;
-          // Add onderslag penalty if applicable
-          if (ronde.minimaal_slagen && ronde.slagen_gehaald < ronde.minimaal_slagen) {
-            const tekort = ronde.minimaal_slagen - ronde.slagen_gehaald;
-            puntenVoorSpelers += (puntenConfig.onderslag || -1) * tekort;
-          }
-          // For "alleen" games: stilzitters gain when player fails
-          if (!isMetMaat) {
-            puntenVoorStilzitters = Math.abs(puntenConfig.nat || 10) / stilzitters.length;
-          }
-        }
+          // Meerdere: process each sub-round separately
+          // In "Meerdere" (like Allemaal Rik or Meerdere Misere), everyone wins/loses for themselves
+          rows.forEach(ronde => {
+            const multiplier = ronde.verdubbeld ? 2 : 1;
+            const puntenConfig = ronde.punten;
 
-        // Apply verdubbeling
-        const multiplier = ronde.verdubbeld ? 2 : 1;
-
-        // Add scores for uitdager (and maat)
-        spelers.forEach(spelerId => {
-          scores.push({
-            avond_speler_id: spelerId,
-            ronde_nummer: ronde.ronde_nummer,
-            punten: Math.round(puntenVoorSpelers * multiplier)
+            if (ronde.gemaakt) {
+              // Participant made it: others (who played) get points
+              const anderen = actieveSpelersInRonde.filter(id => id !== ronde.uitdager_id);
+              const finalPoints = Math.round((puntenConfig.gemaakt || 5) * multiplier);
+              anderen.forEach(id => scores.push({ avond_speler_id: id, ronde_nummer: rondeNr, punten: finalPoints }));
+            } else {
+              // Participant failed (nat): they get 3x base points
+              // Note: base points for special games are often fixed in puntenConfig.gemaakt
+              const finalPoints = Math.round((puntenConfig.gemaakt || 5) * 3 * multiplier);
+              scores.push({ avond_speler_id: ronde.uitdager_id, ronde_nummer: rondeNr, punten: finalPoints });
+            }
           });
-        });
-
-        // Add scores for stilzitters (other players)
-        stilzitters.forEach(spelerId => {
-          if (puntenVoorStilzitters !== 0) {
-            scores.push({
-              avond_speler_id: spelerId,
-              ronde_nummer: ronde.ronde_nummer,
-              punten: Math.round(puntenVoorStilzitters * multiplier)
-            });
-          }
-        });
+        }
       });
 
       // Transform data to match expected format
@@ -512,42 +549,46 @@ function Spelavond() {
       const rondeNummer = (maxData?.[0]?.ronde_nummer || 0) + 1;
 
       console.log('Ronde opslaan...', {
-        spelavond_id: avond.id,
+        spel_naam: spelInfo?.naam,
         ronde_nummer: rondeNummer,
-        spel_setting_id: beslisboom.data.spel_setting_id,
-        uitdager_id: beslisboom.data.uitdager_id,
-        slagen_gehaald: beslisboom.data.slagen_gehaald || 0,
-        gemaakt,
-        verdubbeld
+        is_allemaal_piek: spelInfo?.naam === 'Allemaal Piek'
       });
 
-      // Insert ronde
-      const { data: rondeData, error: rondeError } = await supabase
-        .from('rondes')
-        .insert({
+      if (spelInfo?.naam === 'Allemaal Piek') {
+        // For Allemaal Piek, insert a row for each participant from allemaalPiekResultaten
+        const rows = Object.entries(allemaalPiekResultaten).map(([spelerId, isGemaakt]) => ({
           spelavond_id: avond.id,
           ronde_nummer: rondeNummer,
           spel_setting_id: beslisboom.data.spel_setting_id,
-          uitdager_id: beslisboom.data.uitdager_id,
-          maat_id: beslisboom.data.maat_id || null,
-          slagen_gehaald: beslisboom.data.slagen_gehaald || 0,
+          uitdager_id: parseInt(spelerId),
+          verdubbelaar_speler_id: verdubbelaar_speler_id || null,
+          slagen_gehaald: isGemaakt ? 1 : 0,
           verdubbeld: verdubbeld || false,
-          gemaakt
-        })
-        .select()
-        .single();
+          gemaakt: isGemaakt
+        }));
 
-      if (rondeError) {
-        console.error('Ronde error:', rondeError);
-        // If table doesn't exist, show message
-        if (rondeError.code === '42P01') {
-          alert('De rondes tabel bestaat nog niet in Supabase. Voer eerst de database schema SQL uit.');
-          return;
-        }
-        throw rondeError;
+        const { error } = await supabase.from('rondes').insert(rows);
+        if (error) throw error;
+      } else {
+        // Standard single row insert
+        const { error } = await supabase
+          .from('rondes')
+          .insert({
+            spelavond_id: avond.id,
+            ronde_nummer: rondeNummer,
+            spel_setting_id: beslisboom.data.spel_setting_id,
+            uitdager_id: beslisboom.data.uitdager_id,
+            maat_id: beslisboom.data.maat_id || null,
+            schoppen_vrouw_id: beslisboom.data.schoppen_vrouw_id || null,
+            laatste_slag_id: beslisboom.data.laatste_slag_id || null,
+            verdubbelaar_speler_id: verdubbelaar_speler_id || null,
+            slagen_gehaald: beslisboom.data.slagen_gehaald || 0,
+            verdubbeld: verdubbeld || false,
+            gemaakt
+          });
+
+        if (error) throw error;
       }
-
-      console.log('Ronde opgeslagen:', rondeData);
 
       // Als het de laatste ronde is (Schoppen Mie), sluit de avond af en ga naar eindstand
       if (beslisboom.data.is_laatste_ronde) {
@@ -691,6 +732,7 @@ function Spelavond() {
             spel_setting_id: meerdereState.spel.id,
             uitdager_id: deelnemer,
             maat_id: null,
+            verdubbelaar_speler_id: verdubbelaar_speler_id || null,
             slagen_gehaald: gemaakt ? 1 : 0,
             verdubbeld: verdubbeld || false,
             gemaakt
