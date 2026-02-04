@@ -614,25 +614,32 @@ function Spelavond() {
       return;
     }
 
-    const deelnamePayload = meerdereState.deelnemers.map(id => ({
-      avond_speler_id: id,
-      is_gemaakt: Boolean(meerdereState.resultaten[id])
-    }));
-
-    const body = {
-      spelavond_id: avond.id,
-      ronde_nummer: rondeNummer,
-      spel_setting_id: meerdereState.spel.id,
-      deelnemers: deelnamePayload,
-      verdubbeld,
-      verdubbelaar_speler_id
-    };
+    const rondeNr = (avond.rondes?.length || 0) + 1;
 
     try {
-      await apiFetch('/api/spelavond/ronde-meerdere', {
-        method: 'POST',
-        body: JSON.stringify(body)
-      });
+      // For "Meerdere" games, insert a round for each participant
+      for (const deelnemer of meerdereState.deelnemers) {
+        const gemaakt = Boolean(meerdereState.resultaten[deelnemer]);
+
+        const { error } = await supabase
+          .from('rondes')
+          .insert({
+            spelavond_id: avond.id,
+            ronde_nummer: rondeNr,
+            spel_setting_id: meerdereState.spel.id,
+            uitdager_id: deelnemer,
+            maat_id: null,
+            slagen_gehaald: gemaakt ? 1 : 0,
+            verdubbeld: verdubbeld || false,
+            gemaakt
+          });
+
+        if (error) {
+          console.error('Meerdere ronde error:', error);
+          throw error;
+        }
+      }
+
       resetMeerdereState();
       setBeslisboom({ stap: 'speler', data: {} });
       loadAvond();
