@@ -400,43 +400,65 @@ function Spelavond() {
 
   const slaRondeOp = async (verdubbeld, verdubbelaar_speler_id) => {
     // Sla ronde op
-    const rondeNummer = (avond.rondes.length || 0) + 1;
+    const rondeNummer = (avond.rondes?.length || 0) + 1;
+    const spelInfo = beslisboom.data.spelInfo;
+
+    // Bepaal of gemaakt of nat
+    let gemaakt = true;
+    if (spelInfo?.minimaal_slagen) {
+      // Voor spellen met minimaal slagen: vergelijk met gehaalde slagen
+      gemaakt = beslisboom.data.slagen_gehaald >= spelInfo.minimaal_slagen;
+    } else {
+      // Voor andere spellen: slagen_gehaald > 0 = gemaakt
+      gemaakt = beslisboom.data.slagen_gehaald > 0;
+    }
 
     try {
-      const body = {
+      console.log('Ronde opslaan...', {
         spelavond_id: avond.id,
         ronde_nummer: rondeNummer,
         spel_setting_id: beslisboom.data.spel_setting_id,
         uitdager_id: beslisboom.data.uitdager_id,
-        maat_id: beslisboom.data.maat_id,
-        slagen_gehaald: beslisboom.data.slagen_gehaald,
-        verdubbeld,
-        verdubbelaar_speler_id
-      };
-
-      // Als het Allemaal Piek is, voeg individuele resultaten toe
-      if (beslisboom.data.spelInfo?.naam === 'Allemaal Piek') {
-        body.allemaal_piek_resultaten = allemaalPiekResultaten;
-      }
-
-      // Als het Schoppen Mie is, voeg extra data toe
-      if (beslisboom.data.spelInfo?.naam === 'Schoppen Mie') {
-        body.schoppen_vrouw_id = beslisboom.data.schoppen_vrouw_id;
-        body.laatste_slag_id = beslisboom.data.laatste_slag_id;
-      }
-
-      await apiFetch('/api/spelavond/ronde', {
-        method: 'POST',
-        body: JSON.stringify(body)
+        slagen_gehaald: beslisboom.data.slagen_gehaald || 0,
+        gemaakt
       });
 
+      // Check if rondes table exists first - if not, just skip for now
+      const { data: rondeData, error: rondeError } = await supabase
+        .from('rondes')
+        .insert({
+          spelavond_id: avond.id,
+          ronde_nummer: rondeNummer,
+          spel_setting_id: beslisboom.data.spel_setting_id,
+          uitdager_id: beslisboom.data.uitdager_id,
+          maat_id: beslisboom.data.maat_id || null,
+          slagen_gehaald: beslisboom.data.slagen_gehaald || 0,
+          verdubbeld: verdubbeld || false,
+          gemaakt
+        })
+        .select()
+        .single();
+
+      if (rondeError) {
+        console.error('Ronde error:', rondeError);
+        // If table doesn't exist, show message
+        if (rondeError.code === '42P01') {
+          alert('De rondes tabel bestaat nog niet in Supabase. Voer eerst de database schema SQL uit.');
+          return;
+        }
+        throw rondeError;
+      }
+
+      console.log('Ronde opgeslagen:', rondeData);
+
       // Als het de laatste ronde is (Schoppen Mie), sluit de avond af en ga naar eindstand
-      console.log('Ronde opgeslagen. is_laatste_ronde:', beslisboom.data.is_laatste_ronde);
       if (beslisboom.data.is_laatste_ronde) {
         console.log('Laatste ronde! Naar eindstand...');
-        await apiFetch(`/api/spelavond/afsluiten/${avond.id}`, {
-          method: 'PUT'
-        });
+        // Update spelavond status
+        await supabase
+          .from('spelavonden')
+          .update({ status: 'afgelopen' })
+          .eq('id', avond.id);
         navigate(`/eindstand/${avond.id}`);
       } else {
         // Reset beslisboom
