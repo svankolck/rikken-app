@@ -182,11 +182,9 @@ function Spelavond() {
   const handleDeleteRonde = async (rondeId) => {
     if (!confirm('Weet je zeker dat je deze ronde wilt verwijderen?')) return;
     try {
-      await apiFetch(`/api/spelavond/ronde/${rondeId}`, {
-        method: 'DELETE'
-      });
+      // For now, just show message - rondes table may not exist yet
+      alert('Ronde verwijderen nog niet geïmplementeerd');
       loadAvond();
-      loadRondesDetails();
     } catch (err) {
       console.error('Fout bij verwijderen ronde:', err);
       alert(`Fout bij verwijderen ronde: ${err.message || 'Onbekende fout'}`);
@@ -196,10 +194,17 @@ function Spelavond() {
   const handleAddPlayer = async (spelerId) => {
     if (!avond?.id) return;
     try {
-      await apiFetch(`/api/spelavond/${avond.id}/speler`, {
-        method: 'POST',
-        body: JSON.stringify({ speler_id: spelerId })
-      });
+      const newVolgorde = (avond.spelers?.length || 0) + 1;
+      const { error } = await supabase
+        .from('avond_spelers')
+        .insert({
+          spelavond_id: avond.id,
+          speler_id: spelerId,
+          volgorde: newVolgorde,
+          actief: true
+        });
+
+      if (error) throw error;
       loadAvond();
     } catch (err) {
       console.error('Fout bij toevoegen speler:', err);
@@ -209,10 +214,12 @@ function Spelavond() {
   const handleToggleSpelerActief = async (avondSpelerId, actief) => {
     if (!avond?.id) return;
     try {
-      await apiFetch(`/api/spelavond/${avond.id}/speler/${avondSpelerId}/actief`, {
-        method: 'PUT',
-        body: JSON.stringify({ actief: !actief })
-      });
+      const { error } = await supabase
+        .from('avond_spelers')
+        .update({ actief: !actief })
+        .eq('id', avondSpelerId);
+
+      if (error) throw error;
       loadAvond();
     } catch (err) {
       console.error('Fout bij toggle speler actief:', err);
@@ -222,10 +229,12 @@ function Spelavond() {
   const handleSetStartDeler = async (avondSpelerId) => {
     if (!avond?.id) return;
     try {
-      await apiFetch(`/api/spelavond/${avond.id}/deler`, {
-        method: 'PUT',
-        body: JSON.stringify({ start_deler: avondSpelerId })
-      });
+      const { error } = await supabase
+        .from('spelavonden')
+        .update({ start_deler: avondSpelerId })
+        .eq('id', avond.id);
+
+      if (error) throw error;
       loadAvond();
     } catch (err) {
       console.error('Fout bij instellen deler:', err);
@@ -236,15 +245,15 @@ function Spelavond() {
   const handleVolgorde = async (newOrder) => {
     if (!avond?.id) return;
     try {
-      await apiFetch(`/api/spelavond/${avond.id}/volgorde`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          volgorde: newOrder.map((s, i) => ({
-            avond_speler_id: s.avond_speler_id,
-            volgorde: i + 1
-          }))
-        })
-      });
+      // Update each player's volgorde
+      for (let i = 0; i < newOrder.length; i++) {
+        const { error } = await supabase
+          .from('avond_spelers')
+          .update({ volgorde: i + 1 })
+          .eq('id', newOrder[i].avond_speler_id);
+
+        if (error) throw error;
+      }
       loadAvond();
     } catch (err) {
       console.error('Fout bij aanpassen volgorde:', err);
