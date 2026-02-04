@@ -227,13 +227,20 @@ function Spelavond() {
   };
 
   const handleSetStartDeler = async (avondSpelerId) => {
-    if (!avond?.id) return;
+    console.log('handleSetStartDeler called with:', avondSpelerId, 'avond.id:', avond?.id);
+    if (!avond?.id) {
+      console.log('Geen avond.id, return');
+      return;
+    }
     try {
-      const { error } = await supabase
+      console.log('Updating spelavonden start_deler...');
+      const { data, error } = await supabase
         .from('spelavonden')
         .update({ start_deler: avondSpelerId })
-        .eq('id', avond.id);
+        .eq('id', avond.id)
+        .select();
 
+      console.log('Update result - data:', data, 'error:', error);
       if (error) throw error;
       loadAvond();
     } catch (err) {
