@@ -443,31 +443,38 @@ function Spelavond() {
   };
 
   const slaRondeOp = async (verdubbeld, verdubbelaar_speler_id) => {
-    // Sla ronde op
-    const rondeNummer = (avond.rondes?.length || 0) + 1;
     const spelInfo = beslisboom.data.spelInfo;
 
     // Bepaal of gemaakt of nat
     let gemaakt = true;
     if (spelInfo?.minimaal_slagen) {
-      // Voor spellen met minimaal slagen: vergelijk met gehaalde slagen
       gemaakt = beslisboom.data.slagen_gehaald >= spelInfo.minimaal_slagen;
     } else {
-      // Voor andere spellen: slagen_gehaald > 0 = gemaakt
       gemaakt = beslisboom.data.slagen_gehaald > 0;
     }
 
     try {
+      // Get the max ronde_nummer from database for this spelavond
+      const { data: maxData } = await supabase
+        .from('rondes')
+        .select('ronde_nummer')
+        .eq('spelavond_id', avond.id)
+        .order('ronde_nummer', { ascending: false })
+        .limit(1);
+
+      const rondeNummer = (maxData?.[0]?.ronde_nummer || 0) + 1;
+
       console.log('Ronde opslaan...', {
         spelavond_id: avond.id,
         ronde_nummer: rondeNummer,
         spel_setting_id: beslisboom.data.spel_setting_id,
         uitdager_id: beslisboom.data.uitdager_id,
         slagen_gehaald: beslisboom.data.slagen_gehaald || 0,
-        gemaakt
+        gemaakt,
+        verdubbeld
       });
 
-      // Check if rondes table exists first - if not, just skip for now
+      // Insert ronde
       const { data: rondeData, error: rondeError } = await supabase
         .from('rondes')
         .insert({
@@ -614,9 +621,17 @@ function Spelavond() {
       return;
     }
 
-    const rondeNr = (avond.rondes?.length || 0) + 1;
-
     try {
+      // Get the max ronde_nummer from database for this spelavond
+      const { data: maxData } = await supabase
+        .from('rondes')
+        .select('ronde_nummer')
+        .eq('spelavond_id', avond.id)
+        .order('ronde_nummer', { ascending: false })
+        .limit(1);
+
+      const rondeNr = (maxData?.[0]?.ronde_nummer || 0) + 1;
+
       // For "Meerdere" games, insert a round for each participant
       for (const deelnemer of meerdereState.deelnemers) {
         const gemaakt = Boolean(meerdereState.resultaten[deelnemer]);
