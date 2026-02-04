@@ -1,0 +1,166 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50 text-gray-800;
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  /* Modern gradient button */
+  .btn-primary {
+    @apply bg-gradient-main text-white font-semibold py-4 px-8 rounded-2xl shadow-button 
+           hover:shadow-soft hover:scale-105 transition-all duration-300 ease-out
+           flex items-center justify-center text-center;
+  }
+  
+  .btn-secondary {
+    @apply bg-white text-gray-700 font-semibold py-4 px-8 rounded-2xl shadow-card
+           hover:shadow-soft hover:scale-105 transition-all duration-300 border border-gray-100;
+  }
+  
+  .btn-danger {
+    @apply bg-gradient-to-r from-red-400 to-pink-400 text-white font-semibold py-4 px-8 rounded-2xl 
+           shadow-button hover:shadow-soft hover:scale-105 transition-all duration-300;
+  }
+  
+  /* Modern glassmorphism card */
+  .card {
+    @apply bg-white/80 backdrop-blur-lg rounded-3xl shadow-card p-4 border border-white/20;
+  }
+  
+  /* Soft modern input */
+  .input-field {
+    @apply w-full px-5 py-4 bg-white rounded-2xl focus:outline-none 
+           focus:ring-2 focus:ring-rikken-accent/50 text-lg shadow-sm
+           border border-gray-100 transition-all duration-200;
+  }
+  
+  /* Modern list item with soft styling */
+  .list-item {
+    @apply flex items-center justify-between p-5 bg-white rounded-2xl mb-3 
+           shadow-sm hover:shadow-card transition-all duration-300 
+           border border-gray-50 hover:scale-[1.02];
+  }
+  
+  /* Modern header with gradient */
+  .page-header {
+    @apply bg-gradient-main text-white px-6 flex items-center shadow-soft;
+    min-height: 80px;
+    height: 80px;
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    max-width: 448px;
+    width: 100%;
+    overflow: visible !important;
+  }
+  
+  /* Add padding to page content to account for fixed header */
+  .page-container {
+    padding-top: 96px !important;
+  }
+  
+  @media (max-width: 768px) {
+    .page-header {
+      @apply rounded-none;
+    }
+  }
+  
+  /* Back button styling */
+  .back-button {
+    @apply mr-4 hover:scale-110 transition-transform;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .back-button svg {
+    width: 30px;
+    height: 30px;
+  }
+  
+  /* Modern player button with soft colors */
+  .speler-button {
+    @apply bg-gradient-to-br from-purple-300 to-pink-300 text-gray-800 font-semibold 
+           py-5 px-6 rounded-2xl shadow-button hover:shadow-soft hover:scale-105 
+           transition-all duration-300 text-lg;
+  }
+  
+  /* Decorative blob shapes for background */
+  .blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(70px);
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  
+  .blob-1 {
+    @apply blob bg-rikken-blue;
+    width: 300px;
+    height: 300px;
+    top: -100px;
+    right: -100px;
+  }
+  
+  .blob-2 {
+    @apply blob bg-rikken-green;
+    width: 250px;
+    height: 250px;
+    bottom: -50px;
+    left: -50px;
+  }
+  
+  /* Fade in animation */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  
+  .animate-fadeIn {
+    animation: fadeIn 0.3s ease-out;
+  }
+  
+  /* Date input fix for mobile */
+  input[type="date"] {
+    max-width: 100%;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+  }
+  
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    background: transparent;
+    bottom: 0;
+    color: transparent;
+    cursor: pointer;
+    height: auto;
+    left: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: auto;
+  }
+  
+  @media (max-width: 640px) {
+    input[type="date"] {
+      font-size: 16px !important; /* Voorkomt zoom op iOS */
+      padding-left: 0.75rem !important;
+      padding-right: 0.75rem !important;
+    }
+  }
+}
