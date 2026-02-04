@@ -9,7 +9,8 @@ function PuntenSettings({ user, onLogout }) {
   const [hasActiefAvond, setHasActiefAvond] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const isAdmin = user?.role === 'admin';
+  // Always allow editing for now (can add role check later)
+  const canEdit = !hasActiefAvond;
 
   useEffect(() => {
     loadSettings();
@@ -59,29 +60,21 @@ function PuntenSettings({ user, onLogout }) {
     }
   };
 
-  const handlePuntenChange = (puntenId, field, value) => {
-    if (!isAdmin) {
-      alert('Alleen admins kunnen punten instellingen wijzigen');
-      return;
-    }
+  const handlePuntenChange = (spelId, field, value) => {
     setEditedSettings({
       ...editedSettings,
-      [puntenId]: {
-        ...editedSettings[puntenId],
+      [spelId]: {
+        ...editedSettings[spelId],
         [field]: parseInt(value) || 0
       }
     });
   };
 
   const getValue = (setting, field) => {
-    return editedSettings[setting.punten_id]?.[field] ?? setting[field];
+    return editedSettings[setting.id]?.[field] ?? setting[field];
   };
 
   const handleSave = async () => {
-    if (!isAdmin) {
-      alert('Alleen admins kunnen punten instellingen opslaan');
-      return;
-    }
     if (hasActiefAvond) {
       alert('⚠️ Er is een actieve spelavond! Settings kunnen niet worden gewijzigd.');
       return;
@@ -89,26 +82,42 @@ function PuntenSettings({ user, onLogout }) {
 
     setIsSaving(true);
     try {
-      // Update alle gewijzigde punten settings
-      for (const [puntenId, changes] of Object.entries(editedSettings)) {
-        const setting = settings.find(s => s.punten_id === parseInt(puntenId));
+      // Update punten settings for each changed spel
+      for (const [spelId, changes] of Object.entries(editedSettings)) {
+        const setting = settings.find(s => s.id === parseInt(spelId));
 
-        const { error } = await supabase
-          .from('punten_settings')
-          .update({
-            gemaakt: changes.gemaakt ?? setting.gemaakt,
-            overslag: changes.overslag ?? setting.overslag,
-            nat: changes.nat ?? setting.nat,
-            onderslag: changes.onderslag ?? setting.onderslag
-          })
-          .eq('id', parseInt(puntenId));
+        if (setting.punten_id) {
+          // Update existing punten_settings
+          const { error } = await supabase
+            .from('punten_settings')
+            .update({
+              gemaakt: changes.gemaakt ?? setting.gemaakt,
+              overslag: changes.overslag ?? setting.overslag,
+              nat: changes.nat ?? setting.nat,
+              onderslag: changes.onderslag ?? setting.onderslag
+            })
+            .eq('id', setting.punten_id);
 
-        if (error) throw error;
+          if (error) throw error;
+        } else {
+          // Create new punten_settings
+          const { error } = await supabase
+            .from('punten_settings')
+            .insert({
+              spel_setting_id: parseInt(spelId),
+              gemaakt: changes.gemaakt ?? 0,
+              overslag: changes.overslag ?? 0,
+              nat: changes.nat ?? 0,
+              onderslag: changes.onderslag ?? 0
+            });
+
+          if (error) throw error;
+        }
       }
 
       setEditedSettings({});
       loadSettings();
-      alert('Punten instellingen opgeslagen');
+      alert('✅ Punten instellingen opgeslagen!');
     } catch (err) {
       console.error('Fout bij opslaan punten:', err);
       alert('Er is iets misgegaan bij het opslaan');
@@ -124,6 +133,47 @@ function PuntenSettings({ user, onLogout }) {
   const alleen = settings.filter(s => s.naam?.includes('alleen'));
   const speciaal = settings.filter(s => !s.naam?.includes('Rik') && !s.naam?.includes('alleen'));
 
+  const renderInputRow = (spel) => (
+    <div key={spel.id} className="grid grid-cols-5 items-center gap-2 bg-gray-50 p-3 rounded-xl">
+      <span className="text-sm font-medium text-gray-800">{spel.naam}</span>
+      {canEdit ? (
+        <>
+          <input
+            type="number"
+            value={getValue(spel, 'gemaakt')}
+            onChange={(e) => handlePuntenChange(spel.id, 'gemaakt', e.target.value)}
+            className="w-full px-2 py-1 text-center rounded-lg border-2 border-green-300 focus:border-green-500 focus:outline-none font-bold text-green-600"
+          />
+          <input
+            type="number"
+            value={getValue(spel, 'overslag')}
+            onChange={(e) => handlePuntenChange(spel.id, 'overslag', e.target.value)}
+            className="w-full px-2 py-1 text-center rounded-lg border-2 border-blue-300 focus:border-blue-500 focus:outline-none font-bold text-blue-600"
+          />
+          <input
+            type="number"
+            value={getValue(spel, 'nat')}
+            onChange={(e) => handlePuntenChange(spel.id, 'nat', e.target.value)}
+            className="w-full px-2 py-1 text-center rounded-lg border-2 border-red-300 focus:border-red-500 focus:outline-none font-bold text-red-600"
+          />
+          <input
+            type="number"
+            value={getValue(spel, 'onderslag')}
+            onChange={(e) => handlePuntenChange(spel.id, 'onderslag', e.target.value)}
+            className="w-full px-2 py-1 text-center rounded-lg border-2 border-orange-300 focus:border-orange-500 focus:outline-none font-bold text-orange-600"
+          />
+        </>
+      ) : (
+        <>
+          <span className="text-center font-bold text-green-600">{getValue(spel, 'gemaakt')}</span>
+          <span className="text-center font-bold text-blue-600">{getValue(spel, 'overslag')}</span>
+          <span className="text-center font-bold text-red-600">{getValue(spel, 'nat')}</span>
+          <span className="text-center font-bold text-orange-600">{getValue(spel, 'onderslag')}</span>
+        </>
+      )}
+    </div>
+  );
+
   return (
     <div className="max-w-md mx-auto p-6 min-h-screen pb-24 page-container">
       <div className="page-header">
@@ -135,23 +185,17 @@ function PuntenSettings({ user, onLogout }) {
         <h1 className="text-2xl font-bold">🎯 Punten Settings</h1>
       </div>
 
-      {!isAdmin && (
-        <div className="mb-4 p-4 bg-blue-100 border border-blue-300 rounded-lg text-blue-700 text-sm">
-          ℹ️ Je bekijkt deze pagina in display modus. Alleen admins kunnen punten aanpassen.
-        </div>
-      )}
-
-      {hasActiefAvond && isAdmin && (
-        <div className="mb-4 p-4 bg-yellow-100 border border-yellow-300 rounded-lg text-yellow-700">
+      {hasActiefAvond && (
+        <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-lg text-yellow-700">
           ⚠️ Er is een actieve spelavond! Punten kunnen nu niet worden gewijzigd.
         </div>
       )}
 
       <div className="mt-3 space-y-6">
-        {/* Modern Info Banner */}
+        {/* Info Banner */}
         <div className="card bg-gradient-soft border-2 border-rikken-accent/30">
           <p className="text-sm text-gray-600 text-center">
-            ℹ️ {(hasActiefAvond || !isAdmin) ? 'Bekijk de puntenwaardes per spelvorm' : 'Pas de puntenwaardes aan per spelvorm'}
+            ℹ️ {hasActiefAvond ? 'Bekijk de puntenwaardes per spelvorm' : 'Pas de puntenwaardes aan per spelvorm'}
           </p>
         </div>
 
@@ -169,15 +213,7 @@ function PuntenSettings({ user, onLogout }) {
               <div>Onderslag</div>
             </div>
             <div className="space-y-2">
-              {metMaat.map(spel => (
-                <div key={spel.id} className="grid grid-cols-5 items-center gap-2 bg-gray-50 p-3 rounded-xl">
-                  <span className="text-sm font-medium text-gray-800">{spel.naam}</span>
-                  <span className="text-center font-bold text-green-600">{getValue(spel, 'gemaakt')}</span>
-                  <span className="text-center font-bold text-blue-600">{getValue(spel, 'overslag')}</span>
-                  <span className="text-center font-bold text-red-600">{getValue(spel, 'nat')}</span>
-                  <span className="text-center font-bold text-orange-600">{getValue(spel, 'onderslag')}</span>
-                </div>
-              ))}
+              {metMaat.map(spel => renderInputRow(spel))}
             </div>
           </div>
         </div>
@@ -196,15 +232,7 @@ function PuntenSettings({ user, onLogout }) {
               <div>Onderslag</div>
             </div>
             <div className="space-y-2">
-              {alleen.map(spel => (
-                <div key={spel.id} className="grid grid-cols-5 items-center gap-2 bg-gray-50 p-3 rounded-xl">
-                  <span className="text-sm font-medium text-gray-800">{spel.naam}</span>
-                  <span className="text-center font-bold text-green-600">{getValue(spel, 'gemaakt')}</span>
-                  <span className="text-center font-bold text-blue-600">{getValue(spel, 'overslag') || '-'}</span>
-                  <span className="text-center font-bold text-red-600">{getValue(spel, 'nat') || '-'}</span>
-                  <span className="text-center font-bold text-orange-600">{getValue(spel, 'onderslag') || '-'}</span>
-                </div>
-              ))}
+              {alleen.map(spel => renderInputRow(spel))}
             </div>
           </div>
         </div>
@@ -215,19 +243,12 @@ function PuntenSettings({ user, onLogout }) {
             <span>⭐</span> Speciale Spelvormen
           </h3>
           <div className="space-y-2">
-            {speciaal.map(spel => (
-              <div key={spel.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-xl">
-                <span className="text-sm font-medium text-gray-800">{spel.naam}</span>
-                <span className="bg-gradient-to-r from-purple-400 to-pink-400 text-white px-3 py-1 rounded-lg font-bold text-sm">
-                  {getValue(spel, 'gemaakt')} punten
-                </span>
-              </div>
-            ))}
+            {speciaal.map(spel => renderInputRow(spel))}
           </div>
         </div>
       </div>
 
-      {isAdmin && hasChanges() && !hasActiefAvond && (
+      {hasChanges() && canEdit && (
         <div className="fixed bottom-6 right-6 flex gap-3">
           <button
             onClick={() => setEditedSettings({})}
