@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 
 function SpelSettings() {
   const navigate = useNavigate();
@@ -15,9 +16,13 @@ function SpelSettings() {
 
   const loadSettings = async () => {
     try {
-      const res = await fetch('/api/settings/spel');
-      const data = await res.json();
-      setSettings(data);
+      const { data, error } = await supabase
+        .from('spel_settings')
+        .select('*')
+        .order('naam');
+
+      if (error) throw error;
+      setSettings(data || []);
     } catch (err) {
       console.error('Fout bij laden settings:', err);
     }
@@ -25,9 +30,13 @@ function SpelSettings() {
 
   const checkActiefAvond = async () => {
     try {
-      const res = await fetch('/api/spelavond/actief');
-      const data = await res.json();
-      setHasActiefAvond(!!data);
+      const { data } = await supabase
+        .from('spelavonden')
+        .select('id')
+        .eq('status', 'actief')
+        .limit(1);
+
+      setHasActiefAvond(data && data.length > 0);
     } catch (err) {
       console.error('Fout bij checken actieve avond:', err);
     }
@@ -50,18 +59,14 @@ function SpelSettings() {
     try {
       // Update alle gewijzigde settings
       for (const [id, changes] of Object.entries(editedSettings)) {
-        const setting = settings.find(s => s.id === parseInt(id));
-        await fetch(`/api/settings/spel/${id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            naam: setting.naam,
-            met_maat: setting.met_maat,
-            minimaal_slagen: changes.minimaal_slagen
-          })
-        });
+        const { error } = await supabase
+          .from('spel_settings')
+          .update({ minimaal_slagen: changes.minimaal_slagen })
+          .eq('id', parseInt(id));
+
+        if (error) throw error;
       }
-      
+
       alert('✅ Instellingen succesvol opgeslagen!');
       setEditedSettings({});
       await loadSettings();
@@ -83,9 +88,9 @@ function SpelSettings() {
   };
 
   // Groepeer settings
-  const metMaat = settings.filter(s => s.naam.includes('Rik') && !s.naam.includes('alleen'));
-  const alleen = settings.filter(s => s.naam.includes('alleen'));
-  const speciaal = settings.filter(s => !s.naam.includes('Rik') && !s.naam.includes('alleen'));
+  const metMaat = settings.filter(s => s.naam?.includes('Rik') && !s.naam?.includes('alleen'));
+  const alleen = settings.filter(s => s.naam?.includes('alleen'));
+  const speciaal = settings.filter(s => !s.naam?.includes('Rik') && !s.naam?.includes('alleen'));
 
   return (
     <div className="max-w-md mx-auto p-6 min-h-screen pb-24 page-container">
@@ -93,7 +98,7 @@ function SpelSettings() {
       <div className="page-header">
         <button onClick={() => navigate('/')} className="back-button">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
         <h1 className="text-2xl font-bold">⚙️ Spel Settings</h1>
@@ -205,14 +210,14 @@ function SpelSettings() {
       {/* Modern Save knop - alleen zichtbaar als er wijzigingen zijn */}
       {hasChanges() && !hasActiefAvond && (
         <div className="fixed bottom-6 right-6 flex gap-3">
-          <button 
-            onClick={() => setEditedSettings({})} 
+          <button
+            onClick={() => setEditedSettings({})}
             className="btn-secondary shadow-soft"
           >
             ✕ Annuleer
           </button>
-          <button 
-            onClick={handleSave} 
+          <button
+            onClick={handleSave}
             className="btn-primary shadow-soft"
             disabled={isSaving}
           >
@@ -225,4 +230,3 @@ function SpelSettings() {
 }
 
 export default SpelSettings;
-

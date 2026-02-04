@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import apiFetch from '../utils/api';
+import { supabase } from '../lib/supabase';
 
 function PuntenSettings({ user, onLogout }) {
   const navigate = useNavigate();
@@ -18,9 +18,28 @@ function PuntenSettings({ user, onLogout }) {
 
   const loadSettings = async () => {
     try {
-      const res = await apiFetch('/api/settings/spel');
-      const data = await res.json();
-      setSettings(data);
+      // Load spel_settings with their punten_settings
+      const { data: spelData, error: spelError } = await supabase
+        .from('spel_settings')
+        .select('*, punten_settings(*)')
+        .order('naam');
+
+      if (spelError) throw spelError;
+
+      // Flatten the data for display
+      const flatData = (spelData || []).map(spel => ({
+        id: spel.id,
+        naam: spel.naam,
+        met_maat: spel.met_maat,
+        minimaal_slagen: spel.minimaal_slagen,
+        punten_id: spel.punten_settings?.[0]?.id || null,
+        gemaakt: spel.punten_settings?.[0]?.gemaakt || 0,
+        overslag: spel.punten_settings?.[0]?.overslag || 0,
+        nat: spel.punten_settings?.[0]?.nat || 0,
+        onderslag: spel.punten_settings?.[0]?.onderslag || 0
+      }));
+
+      setSettings(flatData);
     } catch (err) {
       console.error('Fout bij laden settings:', err);
     }
@@ -28,9 +47,13 @@ function PuntenSettings({ user, onLogout }) {
 
   const checkActiefAvond = async () => {
     try {
-      const res = await apiFetch('/api/spelavond/actief');
-      const data = await res.json();
-      setHasActiefAvond(!!data);
+      const { data } = await supabase
+        .from('spelavonden')
+        .select('id')
+        .eq('status', 'actief')
+        .limit(1);
+
+      setHasActiefAvond(data && data.length > 0);
     } catch (err) {
       console.error('Fout bij checken actieve avond:', err);
     }
@@ -43,8 +66,8 @@ function PuntenSettings({ user, onLogout }) {
     }
     setEditedSettings({
       ...editedSettings,
-      [puntenId]: { 
-        ...editedSettings[puntenId], 
+      [puntenId]: {
+        ...editedSettings[puntenId],
         [field]: parseInt(value) || 0
       }
     });
@@ -69,15 +92,18 @@ function PuntenSettings({ user, onLogout }) {
       // Update alle gewijzigde punten settings
       for (const [puntenId, changes] of Object.entries(editedSettings)) {
         const setting = settings.find(s => s.punten_id === parseInt(puntenId));
-        await apiFetch(`/api/settings/punten/${puntenId}`, {
-          method: 'PUT',
-          body: JSON.stringify({
+
+        const { error } = await supabase
+          .from('punten_settings')
+          .update({
             gemaakt: changes.gemaakt ?? setting.gemaakt,
             overslag: changes.overslag ?? setting.overslag,
             nat: changes.nat ?? setting.nat,
             onderslag: changes.onderslag ?? setting.onderslag
           })
-        });
+          .eq('id', parseInt(puntenId));
+
+        if (error) throw error;
       }
 
       setEditedSettings({});
@@ -94,16 +120,16 @@ function PuntenSettings({ user, onLogout }) {
   const hasChanges = () => Object.keys(editedSettings).length > 0;
 
   // Groepeer settings
-  const metMaat = settings.filter(s => s.naam.includes('Rik') && !s.naam.includes('alleen'));
-  const alleen = settings.filter(s => s.naam.includes('alleen'));
-  const speciaal = settings.filter(s => !s.naam.includes('Rik') && !s.naam.includes('alleen'));
+  const metMaat = settings.filter(s => s.naam?.includes('Rik') && !s.naam?.includes('alleen'));
+  const alleen = settings.filter(s => s.naam?.includes('alleen'));
+  const speciaal = settings.filter(s => !s.naam?.includes('Rik') && !s.naam?.includes('alleen'));
 
   return (
     <div className="max-w-md mx-auto p-6 min-h-screen pb-24 page-container">
       <div className="page-header">
         <button onClick={() => navigate('/')} className="back-button">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
         <h1 className="text-2xl font-bold">🎯 Punten Settings</h1>
@@ -122,16 +148,6 @@ function PuntenSettings({ user, onLogout }) {
       )}
 
       <div className="mt-3 space-y-6">
-        {/* Warning banner als er een actieve avond is */}
-        {hasActiefAvond && (
-          <div className="card bg-gradient-to-r from-red-400 to-orange-400 text-white border-none">
-            <p className="text-sm font-semibold text-center flex items-center justify-center gap-2">
-              <span className="text-xl">🔒</span>
-              Er is een actieve spelavond - Settings zijn read-only
-            </p>
-          </div>
-        )}
-
         {/* Modern Info Banner */}
         <div className="card bg-gradient-soft border-2 border-rikken-accent/30">
           <p className="text-sm text-gray-600 text-center">
@@ -156,45 +172,10 @@ function PuntenSettings({ user, onLogout }) {
               {metMaat.map(spel => (
                 <div key={spel.id} className="grid grid-cols-5 items-center gap-2 bg-gray-50 p-3 rounded-xl">
                   <span className="text-sm font-medium text-gray-800">{spel.naam}</span>
-                  {(hasActiefAvond || !isAdmin) ? (
-                    <>
-                      <span className="text-center font-bold text-green-600">{getValue(spel, 'gemaakt')}</span>
-                      <span className="text-center font-bold text-blue-600">{getValue(spel, 'overslag')}</span>
-                      <span className="text-center font-bold text-red-600">{getValue(spel, 'nat')}</span>
-                      <span className="text-center font-bold text-orange-600">{getValue(spel, 'onderslag')}</span>
-                    </>
-                  ) : (
-                    <>
-                      <input
-                        type="number"
-                        min="0"
-                        value={getValue(spel, 'gemaakt')}
-                        onChange={(e) => handlePuntenChange(spel.punten_id, 'gemaakt', e.target.value)}
-                        className="w-full px-2 py-1 text-center rounded-lg border-2 border-green-300 focus:border-green-500 focus:outline-none font-bold text-green-600"
-                      />
-                      <input
-                        type="number"
-                        min="0"
-                        value={getValue(spel, 'overslag')}
-                        onChange={(e) => handlePuntenChange(spel.punten_id, 'overslag', e.target.value)}
-                        className="w-full px-2 py-1 text-center rounded-lg border-2 border-blue-300 focus:border-blue-500 focus:outline-none font-bold text-blue-600"
-                      />
-                      <input
-                        type="number"
-                        min="0"
-                        value={getValue(spel, 'nat')}
-                        onChange={(e) => handlePuntenChange(spel.punten_id, 'nat', e.target.value)}
-                        className="w-full px-2 py-1 text-center rounded-lg border-2 border-red-300 focus:border-red-500 focus:outline-none font-bold text-red-600"
-                      />
-                      <input
-                        type="number"
-                        min="0"
-                        value={getValue(spel, 'onderslag')}
-                        onChange={(e) => handlePuntenChange(spel.punten_id, 'onderslag', e.target.value)}
-                        className="w-full px-2 py-1 text-center rounded-lg border-2 border-orange-300 focus:border-orange-500 focus:outline-none font-bold text-orange-600"
-                      />
-                    </>
-                  )}
+                  <span className="text-center font-bold text-green-600">{getValue(spel, 'gemaakt')}</span>
+                  <span className="text-center font-bold text-blue-600">{getValue(spel, 'overslag')}</span>
+                  <span className="text-center font-bold text-red-600">{getValue(spel, 'nat')}</span>
+                  <span className="text-center font-bold text-orange-600">{getValue(spel, 'onderslag')}</span>
                 </div>
               ))}
             </div>
@@ -218,45 +199,10 @@ function PuntenSettings({ user, onLogout }) {
               {alleen.map(spel => (
                 <div key={spel.id} className="grid grid-cols-5 items-center gap-2 bg-gray-50 p-3 rounded-xl">
                   <span className="text-sm font-medium text-gray-800">{spel.naam}</span>
-                  {(hasActiefAvond || !isAdmin) ? (
-                    <>
-                      <span className="text-center font-bold text-green-600">{getValue(spel, 'gemaakt')}</span>
-                      <span className="text-center font-bold text-blue-600">{getValue(spel, 'overslag') || '-'}</span>
-                      <span className="text-center font-bold text-red-600">{getValue(spel, 'nat') || '-'}</span>
-                      <span className="text-center font-bold text-orange-600">{getValue(spel, 'onderslag') || '-'}</span>
-                    </>
-                  ) : (
-                    <>
-                      <input
-                        type="number"
-                        min="0"
-                        value={getValue(spel, 'gemaakt')}
-                        onChange={(e) => handlePuntenChange(spel.punten_id, 'gemaakt', e.target.value)}
-                        className="w-full px-2 py-1 text-center rounded-lg border-2 border-green-300 focus:border-green-500 focus:outline-none font-bold text-green-600"
-                      />
-                      <input
-                        type="number"
-                        min="0"
-                        value={getValue(spel, 'overslag')}
-                        onChange={(e) => handlePuntenChange(spel.punten_id, 'overslag', e.target.value)}
-                        className="w-full px-2 py-1 text-center rounded-lg border-2 border-blue-300 focus:border-blue-500 focus:outline-none font-bold text-blue-600"
-                      />
-                      <input
-                        type="number"
-                        min="0"
-                        value={getValue(spel, 'nat')}
-                        onChange={(e) => handlePuntenChange(spel.punten_id, 'nat', e.target.value)}
-                        className="w-full px-2 py-1 text-center rounded-lg border-2 border-red-300 focus:border-red-500 focus:outline-none font-bold text-red-600"
-                      />
-                      <input
-                        type="number"
-                        min="0"
-                        value={getValue(spel, 'onderslag')}
-                        onChange={(e) => handlePuntenChange(spel.punten_id, 'onderslag', e.target.value)}
-                        className="w-full px-2 py-1 text-center rounded-lg border-2 border-orange-300 focus:border-orange-500 focus:outline-none font-bold text-orange-600"
-                      />
-                    </>
-                  )}
+                  <span className="text-center font-bold text-green-600">{getValue(spel, 'gemaakt')}</span>
+                  <span className="text-center font-bold text-blue-600">{getValue(spel, 'overslag') || '-'}</span>
+                  <span className="text-center font-bold text-red-600">{getValue(spel, 'nat') || '-'}</span>
+                  <span className="text-center font-bold text-orange-600">{getValue(spel, 'onderslag') || '-'}</span>
                 </div>
               ))}
             </div>
@@ -272,21 +218,9 @@ function PuntenSettings({ user, onLogout }) {
             {speciaal.map(spel => (
               <div key={spel.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-xl">
                 <span className="text-sm font-medium text-gray-800">{spel.naam}</span>
-                <div className="flex items-center gap-2">
-                  {(hasActiefAvond || !isAdmin) ? (
-                    <span className="bg-gradient-to-r from-purple-400 to-pink-400 text-white px-3 py-1 rounded-lg font-bold text-sm">
-                      {getValue(spel, 'gemaakt')} cent
-                    </span>
-                  ) : (
-                    <input
-                      type="number"
-                      min="0"
-                      value={getValue(spel, 'gemaakt')}
-                      onChange={(e) => handlePuntenChange(spel.punten_id, 'gemaakt', e.target.value)}
-                      className="w-16 px-2 py-1 text-sm text-center rounded-lg border-2 border-purple-300 focus:border-purple-500 focus:outline-none font-bold text-purple-600"
-                    />
-                  )}
-                </div>
+                <span className="bg-gradient-to-r from-purple-400 to-pink-400 text-white px-3 py-1 rounded-lg font-bold text-sm">
+                  {getValue(spel, 'gemaakt')} punten
+                </span>
               </div>
             ))}
           </div>
@@ -295,14 +229,14 @@ function PuntenSettings({ user, onLogout }) {
 
       {isAdmin && hasChanges() && !hasActiefAvond && (
         <div className="fixed bottom-6 right-6 flex gap-3">
-          <button 
-            onClick={() => setEditedSettings({})} 
+          <button
+            onClick={() => setEditedSettings({})}
             className="btn-secondary shadow-soft"
           >
             ✕ Annuleer
           </button>
-          <button 
-            onClick={handleSave} 
+          <button
+            onClick={handleSave}
             className="btn-primary shadow-soft"
             disabled={isSaving}
           >
@@ -315,4 +249,3 @@ function PuntenSettings({ user, onLogout }) {
 }
 
 export default PuntenSettings;
-
