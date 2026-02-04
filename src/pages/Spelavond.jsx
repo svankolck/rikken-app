@@ -117,16 +117,15 @@ function Spelavond() {
         spelersMap[s.id] = s.naam;
       });
 
-      // Get rondes for this spelavond
+      // Get rondes for this spelavond with punten_settings
       const { data: rondesData, error: rondesError } = await supabase
         .from('rondes')
-        .select('*, spel_settings(naam, met_maat, minimaal_slagen)')
+        .select('*, spel_settings(id, naam, met_maat, minimaal_slagen, punten_settings(gemaakt, overslag, nat, onderslag))')
         .eq('spelavond_id', spelavondData.id)
         .order('ronde_nummer');
 
       if (rondesError) {
         console.error('Rondes error:', rondesError);
-        // Continue without rondes if table doesn't exist
       }
 
       // Format rondes
@@ -134,6 +133,9 @@ function Spelavond() {
         id: r.id,
         ronde_nummer: r.ronde_nummer,
         spel_naam: r.spel_settings?.naam,
+        met_maat: r.spel_settings?.met_maat,
+        minimaal_slagen: r.spel_settings?.minimaal_slagen,
+        punten: r.spel_settings?.punten_settings?.[0] || { gemaakt: 5, overslag: 1, nat: -10, onderslag: -1 },
         uitdager_id: r.uitdager_id,
         maat_id: r.maat_id,
         slagen_gehaald: r.slagen_gehaald,
@@ -141,24 +143,69 @@ function Spelavond() {
         verdubbeld: r.verdubbeld
       }));
 
-      // Calculate scores based on rondes
-      // Simple scoring: for now just track +1 for gemaakt, -1 for nat
+      // Calculate scores based on rondes with proper Rikken rules
       const scores = [];
+      const avondSpelerIds = (avondSpelersData || []).map(as => as.id);
+
       formattedRondes.forEach(ronde => {
-        const punten = ronde.gemaakt ? 10 : -10; // Simplified scoring
-        scores.push({
-          avond_speler_id: ronde.uitdager_id,
-          ronde_nummer: ronde.ronde_nummer,
-          punten: punten
-        });
-        // If there's a maat, they get the same score
-        if (ronde.maat_id) {
-          scores.push({
-            avond_speler_id: ronde.maat_id,
-            ronde_nummer: ronde.ronde_nummer,
-            punten: punten
-          });
+        const puntenConfig = ronde.punten;
+        const isMetMaat = ronde.met_maat;
+        const spelers = [ronde.uitdager_id];
+        if (ronde.maat_id) spelers.push(ronde.maat_id);
+
+        // Other players (stilzitters)
+        const stilzitters = avondSpelerIds.filter(id => !spelers.includes(id));
+
+        let puntenVoorSpelers = 0;
+        let puntenVoorStilzitters = 0;
+
+        if (ronde.gemaakt) {
+          // Spel gemaakt
+          puntenVoorSpelers = puntenConfig.gemaakt || 5;
+          // Add overslag bonus if applicable
+          if (ronde.minimaal_slagen && ronde.slagen_gehaald > ronde.minimaal_slagen) {
+            puntenVoorSpelers += (puntenConfig.overslag || 1) * (ronde.slagen_gehaald - ronde.minimaal_slagen);
+          }
+          // For "alleen" games like Misère/Piek: stilzitters lose points (pay the player)
+          if (!isMetMaat) {
+            puntenVoorStilzitters = -(puntenConfig.gemaakt || 5);
+          }
+        } else {
+          // Spel nat (niet gemaakt)
+          puntenVoorSpelers = puntenConfig.nat || -10;
+          // Add onderslag penalty if applicable
+          if (ronde.minimaal_slagen && ronde.slagen_gehaald < ronde.minimaal_slagen) {
+            const tekort = ronde.minimaal_slagen - ronde.slagen_gehaald;
+            puntenVoorSpelers += (puntenConfig.onderslag || -1) * tekort;
+          }
+          // For "alleen" games: stilzitters gain when player fails
+          if (!isMetMaat) {
+            puntenVoorStilzitters = Math.abs(puntenConfig.nat || 10) / stilzitters.length;
+          }
         }
+
+        // Apply verdubbeling
+        const multiplier = ronde.verdubbeld ? 2 : 1;
+
+        // Add scores for uitdager (and maat)
+        spelers.forEach(spelerId => {
+          scores.push({
+            avond_speler_id: spelerId,
+            ronde_nummer: ronde.ronde_nummer,
+            punten: Math.round(puntenVoorSpelers * multiplier)
+          });
+        });
+
+        // Add scores for stilzitters (other players)
+        stilzitters.forEach(spelerId => {
+          if (puntenVoorStilzitters !== 0) {
+            scores.push({
+              avond_speler_id: spelerId,
+              ronde_nummer: ronde.ronde_nummer,
+              punten: Math.round(puntenVoorStilzitters * multiplier)
+            });
+          }
+        });
       });
 
       // Transform data to match expected format
