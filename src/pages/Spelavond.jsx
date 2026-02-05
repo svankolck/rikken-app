@@ -997,7 +997,7 @@ function Spelavond() {
   const heeftGeenDeler = !avond.start_deler && actieveSpelers.length > 0;
 
   return (
-    <div className="max-w-4xl mx-auto p-4 pb-8 page-container">
+    <div className="max-w-md mx-auto p-4 pb-8 page-container">
       {/* Verplichte deler selectie modal */}
       {heeftGeenDeler && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
