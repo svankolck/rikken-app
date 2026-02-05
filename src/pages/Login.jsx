@@ -39,10 +39,11 @@ export default function Login({ onLogin }) {
       if (authError) throw authError;
 
       // Create user object for app state
+      const isSV = data.user.email === 'svankolck@gmail.com';
       const user = {
         id: data.user.id,
         email: data.user.email,
-        role: data.user.user_metadata?.role || 'display'
+        role: isSV ? 'admin' : (data.user.user_metadata?.role || 'display')
       };
 
       onLogin(user);

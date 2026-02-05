@@ -49,12 +49,13 @@ function App() {
           .eq('id', session.user.id)
           .maybeSingle(); // Use maybeSingle to avoid errors if missing
 
+        const isSV = session.user.email === 'svankolck@gmail.com';
         setIsAuthenticated(true);
         setUser({
           id: session.user.id,
           email: session.user.email,
-          role: profile?.role || (session.user.email === 'svankolck@gmail.com' ? 'admin' : 'display'),
-          approved: profile?.approved || (session.user.email === 'svankolck@gmail.com' ? true : false),
+          role: isSV ? 'admin' : (profile?.role || 'display'),
+          approved: isSV ? true : (profile?.approved || false),
           speler_id: profile?.speler_id
         });
       }
@@ -74,12 +75,13 @@ function App() {
           .eq('id', session.user.id)
           .maybeSingle();
 
+        const isSV = session.user.email === 'svankolck@gmail.com';
         setIsAuthenticated(true);
         setUser({
           id: session.user.id,
           email: session.user.email,
-          role: profile?.role || (session.user.email === 'svankolck@gmail.com' ? 'admin' : 'display'),
-          approved: profile?.approved || (session.user.email === 'svankolck@gmail.com' ? true : false),
+          role: isSV ? 'admin' : (profile?.role || 'display'),
+          approved: isSV ? true : (profile?.approved || false),
           speler_id: profile?.speler_id
         });
       } else {
