@@ -37,49 +37,83 @@ function App() {
 
   // Check for existing Supabase session on mount
   useEffect(() => {
+    let mounted = true;
     const initAuth = async () => {
+      console.log('App: initAuth started');
       try {
-        // Get current session
         const { data: { session }, error } = await supabase.auth.getSession();
-
         if (error) throw error;
 
         if (session?.user && mounted) {
-          // Fetch profile data
-          const { data: profile, error: profileError } = await supabase
+          console.log('App: Session found, fetching profile (with 3s timeout)');
+
+          // Profile fetch with timeout to prevent hanging
+          const profilePromise = supabase
             .from('profiles')
             .select('role, approved, speler_id')
             .eq('id', session.user.id)
             .maybeSingle();
 
-          if (profileError) console.warn('Profile fetch error:', profileError);
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Profile fetch timeout')), 3000)
+          );
 
-          const isSV = session.user.email === 'svankolck@gmail.com';
-          setIsAuthenticated(true);
-          setUser({
-            id: session.user.id,
-            email: session.user.email,
-            role: isSV ? 'admin' : (profile?.role || 'display'),
-            approved: isSV ? true : (profile?.approved || false),
-            speler_id: profile?.speler_id
-          });
+          try {
+            const { data: profile, error: profileError } = await Promise.race([profilePromise, timeoutPromise]);
+            if (profileError) throw profileError;
+
+            console.log('App: Profile loaded successfully');
+            const isSV = session.user.email === 'svankolck@gmail.com';
+            setIsAuthenticated(true);
+            setUser({
+              id: session.user.id,
+              email: session.user.email,
+              role: isSV ? 'admin' : (profile?.role || 'display'),
+              approved: isSV ? true : (profile?.approved || false),
+              speler_id: profile?.speler_id
+            });
+          } catch (pErr) {
+            console.warn('App: Profile fetch failed or timed out, using defaults:', pErr);
+            const isSV = session.user.email === 'svankolck@gmail.com';
+            setIsAuthenticated(true);
+            setUser({
+              id: session.user.id,
+              email: session.user.email,
+              role: isSV ? 'admin' : 'display',
+              approved: isSV ? true : false,
+              speler_id: null
+            });
+          }
+        } else {
+          console.log('App: No user session in initAuth');
         }
       } catch (err) {
-        console.error('Auth initialization error:', err);
+        console.error('App: Auth init root error:', err);
       } finally {
-        if (mounted) setLoading(false);
+        if (mounted) {
+          console.log('App: initAuth finished, stopping loading');
+          setLoading(false);
+        }
       }
     };
+
+    // Safety timeout: Always stop loading after 5 seconds no matter what
+    const safetyTimeout = setTimeout(() => {
+      if (mounted && loading) {
+        console.warn('App: Safety timeout reached, forcing loading to false');
+        setLoading(false);
+      }
+    }, 5000);
 
     initAuth();
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('App: Auth state change:', event);
       if (!mounted) return;
 
       if (session?.user) {
         try {
-          // Fetch profile data
           const { data: profile } = await supabase
             .from('profiles')
             .select('role, approved, speler_id')
@@ -96,18 +130,21 @@ function App() {
             speler_id: profile?.speler_id
           });
         } catch (err) {
-          console.error('Auth state change error:', err);
+          console.error('App: Auth state change profile fetch error:', err);
         }
       } else {
         setIsAuthenticated(false);
         setUser(null);
       }
 
-      // Ensure loading is false after state change
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      clearTimeout(safetyTimeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleLogin = (userData) => {
