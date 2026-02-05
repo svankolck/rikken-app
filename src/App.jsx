@@ -114,21 +114,43 @@ function App() {
 
       if (session?.user) {
         try {
-          const { data: profile } = await supabase
+          console.log('App: Fetching profile on state change (with 3s timeout)');
+
+          const profilePromise = supabase
             .from('profiles')
             .select('role, approved, speler_id')
             .eq('id', session.user.id)
             .maybeSingle();
 
-          const isSV = session.user.email === 'svankolck@gmail.com';
-          setIsAuthenticated(true);
-          setUser({
-            id: session.user.id,
-            email: session.user.email,
-            role: isSV ? 'admin' : (profile?.role || 'display'),
-            approved: isSV ? true : (profile?.approved || false),
-            speler_id: profile?.speler_id
-          });
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Profile fetch timeout')), 3000)
+          );
+
+          try {
+            const { data: profile, error: profileError } = await Promise.race([profilePromise, timeoutPromise]);
+            if (profileError) throw profileError;
+
+            const isSV = session.user.email === 'svankolck@gmail.com';
+            setIsAuthenticated(true);
+            setUser({
+              id: session.user.id,
+              email: session.user.email,
+              role: isSV ? 'admin' : (profile?.role || 'display'),
+              approved: isSV ? true : (profile?.approved || false),
+              speler_id: profile?.speler_id
+            });
+          } catch (pErr) {
+            console.warn('App: Profile fetch on state change failed/timed out:', pErr);
+            const isSV = session.user.email === 'svankolck@gmail.com';
+            setIsAuthenticated(true);
+            setUser({
+              id: session.user.id,
+              email: session.user.email,
+              role: isSV ? 'admin' : 'display',
+              approved: isSV ? true : false,
+              speler_id: null
+            });
+          }
         } catch (err) {
           console.error('App: Auth state change profile fetch error:', err);
         }

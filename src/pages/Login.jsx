@@ -30,12 +30,21 @@ export default function Login({ onLogin }) {
     setLoading(true);
     setError('');
 
+    // Timeout safety for the login request
+    const loginTimeout = setTimeout(() => {
+      if (loading) {
+        setError('De verbinding met de server duurt te lang. Probeer het opnieuw of herlaad de pagina.');
+        setLoading(false);
+      }
+    }, 10000);
+
     try {
       const { data, error: authError } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password
       });
 
+      clearTimeout(loginTimeout);
       if (authError) throw authError;
 
       // Create user object for app state
@@ -49,9 +58,10 @@ export default function Login({ onLogin }) {
       onLogin(user);
       navigate('/');
     } catch (err) {
+      clearTimeout(loginTimeout);
       setError(err.message || 'Inloggen mislukt');
     } finally {
-      setLoading(false);
+      if (loading) setLoading(false);
     }
   };
 
