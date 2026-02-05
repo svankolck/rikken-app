@@ -143,6 +143,14 @@ function SpelSettings() {
           </p>
         </div>
 
+        {/* Legenda voor rode checkbox */}
+        <div className="card bg-red-50 border border-red-200">
+          <p className="text-sm text-gray-700 flex items-center gap-2">
+            <span className="text-red-500 text-lg">🔴</span>
+            <span><strong>Verdubbelaar terug:</strong> Als dit spel gewonnen wordt, krijgt de speler een verdubbelaar terug.</span>
+          </p>
+        </div>
+
         {/* Met maat spelvormen */}
         <div className="card">
           <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
