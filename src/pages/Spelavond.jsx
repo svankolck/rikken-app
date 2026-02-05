@@ -1349,10 +1349,10 @@ function Spelavond() {
         <div className="max-h-48 overflow-y-auto border-t pt-3">
           {laatsteRondes.map(ronde => {
             const stilzittersRonde = getStilzittersVoorRonde(ronde.ronde_nummer);
-            const isVerdubbeld = ronde.verdubbeld === 1;
+            const isVerdubbeld = ronde.verdubbeld === true || ronde.verdubbeld === 1;
             return (
               <div key={ronde.ronde_nummer} className="flex items-center gap-3 mb-2">
-                <div className={`w-6 text-center font-semibold text-gray-600 flex-shrink-0 rounded-lg ${isVerdubbeld ? 'border border-red-500 bg-red-50' : ''}`}>
+                <div className={`w-6 text-center font-semibold text-gray-600 flex-shrink-0 rounded-lg ${isVerdubbeld ? 'ring-2 ring-red-500 bg-red-50' : ''}`}>
                   {ronde.ronde_nummer}
                 </div>
                 <div className="grid gap-2 flex-1" style={{ gridTemplateColumns: `repeat(${alleSpelers.length}, 1fr)` }}>
