@@ -49,8 +49,8 @@
     left: 50%;
     transform: translateX(-50%);
     z-index: 50;
-    max-width: calc(448px - 48px);
-    width: calc(100% - 48px);
+    max-width: calc(448px - 32px);
+    width: calc(100% - 32px);
     overflow: visible !important;
   }
 
