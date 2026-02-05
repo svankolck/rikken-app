@@ -39,6 +39,14 @@ function App() {
   useEffect(() => {
     let mounted = true;
 
+    // Safety timeout: always stop loading after 5 seconds max
+    const timeoutId = setTimeout(() => {
+      if (mounted && loading) {
+        console.warn('Auth initialization timed out, forcing loading to false');
+        setLoading(false);
+      }
+    }, 5000);
+
     const initAuth = async () => {
       try {
         // Get current session
@@ -65,11 +73,17 @@ function App() {
             approved: isSV ? true : (profile?.approved || false),
             speler_id: profile?.speler_id
           });
+          console.log('User state initialized');
+        } else {
+          console.log('No active session found');
         }
       } catch (err) {
-        console.error('Auth initialization error:', err);
+        console.error('Auth initialization caught error:', err);
       } finally {
-        if (mounted) setLoading(false);
+        if (mounted) {
+          console.log('Auth initialization completed (finally)');
+          setLoading(false);
+        }
       }
     };
 
@@ -77,6 +91,7 @@ function App() {
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state change event:', event);
       if (!mounted) return;
 
       if (session?.user) {
@@ -105,12 +120,12 @@ function App() {
         setUser(null);
       }
 
-      // Safety: always ensure loading is false after state change if we are still loading
       setLoading(false);
     });
 
     return () => {
       mounted = false;
+      clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
   }, []);
