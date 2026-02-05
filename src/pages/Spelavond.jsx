@@ -303,8 +303,40 @@ function Spelavond() {
 
   const loadRondesDetails = async () => {
     if (!avond?.id) return;
-    // For now, set empty - we'll implement full ronde loading later
-    setRondesDetails([]);
+
+    try {
+      const { data, error } = await supabase
+        .from('rondes')
+        .select('*, spel_settings(naam, minimaal_slagen)')
+        .eq('spelavond_id', avond.id)
+        .order('ronde_nummer', { ascending: false });
+
+      if (error) throw error;
+
+      // Map speler IDs to names
+      const spelerMap = {};
+      avond.spelers?.forEach(s => {
+        spelerMap[s.avond_speler_id] = s.naam;
+      });
+
+      const details = (data || []).map(r => ({
+        id: r.id,
+        ronde_nummer: r.ronde_nummer,
+        spelvorm: r.spel_settings?.naam || 'Onbekend',
+        uitdager_naam: spelerMap[r.uitdager_id] || 'Onbekend',
+        maat_naam: r.maat_id ? spelerMap[r.maat_id] : null,
+        slagen_gehaald: r.slagen_gehaald || 0,
+        slagen_nodig: r.spel_settings?.minimaal_slagen || 0,
+        gemaakt: r.gemaakt,
+        verdubbeld: r.verdubbeld ? 1 : 0,
+        verdubbelaar_naam: r.verdubbelaar_speler_id ? spelerMap[r.verdubbelaar_speler_id] : null
+      }));
+
+      setRondesDetails(details);
+    } catch (err) {
+      console.error('Fout bij laden ronde details:', err);
+      setRondesDetails([]);
+    }
   };
 
   const handleDeleteRonde = async (rondeId) => {
