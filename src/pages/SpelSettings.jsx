@@ -49,6 +49,13 @@ function SpelSettings() {
     });
   };
 
+  const handleVerdubbelaarChange = (id, checked) => {
+    setEditedSettings({
+      ...editedSettings,
+      [id]: { ...editedSettings[id], geeft_verdubbelaar_terug: checked }
+    });
+  };
+
   const handleSave = async () => {
     if (hasActiefAvond) {
       alert('⚠️ Er is een actieve spelavond! Settings kunnen niet worden gewijzigd.');
@@ -59,12 +66,22 @@ function SpelSettings() {
     try {
       // Update alle gewijzigde settings
       for (const [id, changes] of Object.entries(editedSettings)) {
-        const { error } = await supabase
-          .from('spel_settings')
-          .update({ minimaal_slagen: changes.minimaal_slagen })
-          .eq('id', parseInt(id));
+        const updateData = {};
+        if (changes.minimaal_slagen !== undefined) {
+          updateData.minimaal_slagen = changes.minimaal_slagen;
+        }
+        if (changes.geeft_verdubbelaar_terug !== undefined) {
+          updateData.geeft_verdubbelaar_terug = changes.geeft_verdubbelaar_terug;
+        }
 
-        if (error) throw error;
+        if (Object.keys(updateData).length > 0) {
+          const { error } = await supabase
+            .from('spel_settings')
+            .update(updateData)
+            .eq('id', parseInt(id));
+
+          if (error) throw error;
+        }
       }
 
       alert('✅ Instellingen succesvol opgeslagen!');
@@ -81,6 +98,10 @@ function SpelSettings() {
 
   const getMinSlagen = (setting) => {
     return editedSettings[setting.id]?.minimaal_slagen ?? setting.minimaal_slagen;
+  };
+
+  const getVerdubbelaar = (setting) => {
+    return editedSettings[setting.id]?.geeft_verdubbelaar_terug ?? setting.geeft_verdubbelaar_terug ?? false;
   };
 
   const hasChanges = () => {
@@ -130,23 +151,37 @@ function SpelSettings() {
           <div className="space-y-2">
             {metMaat.map(spel => (
               <div key={spel.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-xl">
-                <span className="text-sm font-medium text-gray-800">{spel.naam}</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-600">Min. slagen:</span>
-                  {hasActiefAvond ? (
-                    <span className="bg-white px-3 py-1 rounded-lg font-bold text-sm text-rikken-blue border-2 border-gray-200">
-                      {getMinSlagen(spel)}
-                    </span>
-                  ) : (
+                  <span className="text-sm font-medium text-gray-800">{spel.naam}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-1 cursor-pointer" title="Geeft verdubbelaar terug bij winst">
                     <input
-                      type="number"
-                      min="1"
-                      max="13"
-                      value={getMinSlagen(spel)}
-                      onChange={(e) => handleMinSlagenChange(spel.id, e.target.value)}
-                      className="w-14 px-2 py-1 text-sm rounded-lg font-bold text-rikken-blue border-2 border-rikken-accent/50 focus:border-rikken-accent focus:outline-none text-center"
+                      type="checkbox"
+                      checked={getVerdubbelaar(spel)}
+                      onChange={(e) => handleVerdubbelaarChange(spel.id, e.target.checked)}
+                      disabled={hasActiefAvond}
+                      className="w-4 h-4 text-red-500 rounded focus:ring-red-400 accent-red-500"
                     />
-                  )}
+                    <span className="text-xs text-red-500">🔴</span>
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-gray-600">Min:</span>
+                    {hasActiefAvond ? (
+                      <span className="bg-white px-2 py-1 rounded-lg font-bold text-xs text-rikken-blue border border-gray-200">
+                        {getMinSlagen(spel)}
+                      </span>
+                    ) : (
+                      <input
+                        type="number"
+                        min="1"
+                        max="13"
+                        value={getMinSlagen(spel)}
+                        onChange={(e) => handleMinSlagenChange(spel.id, e.target.value)}
+                        className="w-12 px-2 py-1 text-xs rounded-lg font-bold text-rikken-blue border border-rikken-accent/50 focus:border-rikken-accent focus:outline-none text-center"
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -161,23 +196,37 @@ function SpelSettings() {
           <div className="space-y-2">
             {alleen.map(spel => (
               <div key={spel.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-xl">
-                <span className="text-sm font-medium text-gray-800">{spel.naam}</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-600">Min. slagen:</span>
-                  {hasActiefAvond ? (
-                    <span className="bg-gradient-main text-white px-3 py-1 rounded-lg font-bold text-sm">
-                      {getMinSlagen(spel)}
-                    </span>
-                  ) : (
+                  <span className="text-sm font-medium text-gray-800">{spel.naam}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-1 cursor-pointer" title="Geeft verdubbelaar terug bij winst">
                     <input
-                      type="number"
-                      min="1"
-                      max="13"
-                      value={getMinSlagen(spel)}
-                      onChange={(e) => handleMinSlagenChange(spel.id, e.target.value)}
-                      className="w-14 px-2 py-1 text-sm rounded-lg font-bold text-white bg-gradient-main border-2 border-rikken-accent/50 focus:border-rikken-accent focus:outline-none text-center"
+                      type="checkbox"
+                      checked={getVerdubbelaar(spel)}
+                      onChange={(e) => handleVerdubbelaarChange(spel.id, e.target.checked)}
+                      disabled={hasActiefAvond}
+                      className="w-4 h-4 text-red-500 rounded focus:ring-red-400 accent-red-500"
                     />
-                  )}
+                    <span className="text-xs text-red-500">🔴</span>
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-gray-600">Min:</span>
+                    {hasActiefAvond ? (
+                      <span className="bg-gradient-main text-white px-2 py-1 rounded-lg font-bold text-xs">
+                        {getMinSlagen(spel)}
+                      </span>
+                    ) : (
+                      <input
+                        type="number"
+                        min="1"
+                        max="13"
+                        value={getMinSlagen(spel)}
+                        onChange={(e) => handleMinSlagenChange(spel.id, e.target.value)}
+                        className="w-12 px-2 py-1 text-xs rounded-lg font-bold text-white bg-gradient-main border border-rikken-accent/50 focus:border-rikken-accent focus:outline-none text-center"
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -197,9 +246,21 @@ function SpelSettings() {
               return (
                 <div key={spel.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-xl">
                   <span className="text-sm font-medium text-gray-800">{spel.naam}</span>
-                  <span className="bg-gradient-to-r from-purple-400 to-pink-400 text-white px-3 py-1 rounded-lg font-bold text-sm">
-                    {displayValue} {displayValue === 1 ? 'slag' : 'slagen'}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-1 cursor-pointer" title="Geeft verdubbelaar terug bij winst">
+                      <input
+                        type="checkbox"
+                        checked={getVerdubbelaar(spel)}
+                        onChange={(e) => handleVerdubbelaarChange(spel.id, e.target.checked)}
+                        disabled={hasActiefAvond}
+                        className="w-4 h-4 text-red-500 rounded focus:ring-red-400 accent-red-500"
+                      />
+                      <span className="text-xs text-red-500">🔴</span>
+                    </label>
+                    <span className="bg-gradient-to-r from-purple-400 to-pink-400 text-white px-2 py-1 rounded-lg font-bold text-xs">
+                      {displayValue} {displayValue === 1 ? 'slag' : 'slagen'}
+                    </span>
+                  </div>
                 </div>
               );
             })}

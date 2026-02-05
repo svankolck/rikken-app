@@ -591,13 +591,13 @@ function Spelavond() {
       }
 
       // Verdubbelaar logica: consumeren en evt terugkrijgen
-      const hogeSpellen = ['Misère', 'Open Misère', 'Piek', 'Open Piek', 'Allemaal Piek'];
-      const isHoogSpel = hogeSpellen.includes(spelInfo?.naam);
+      // Check of dit spel verdubbelaar teruggeeft bij winst (configureerbaar in spel settings)
+      const geeftVerdubbelaarTerug = spelInfo?.geeft_verdubbelaar_terug === true;
 
       if (verdubbeld && verdubbelaar_speler_id) {
-        if (isHoogSpel && gemaakt) {
-          // Speler wint hoog spel met verdubbelaar: behoud verdubbelaar
-          console.log('Hoog spel gewonnen met verdubbelaar, behouden:', verdubbelaar_speler_id);
+        if (geeftVerdubbelaarTerug && gemaakt) {
+          // Speler wint spel dat verdubbelaar teruggeeft: behoud verdubbelaar
+          console.log('Spel met verdubbelaar-terug gewonnen, behouden:', verdubbelaar_speler_id);
           await supabase
             .from('avond_spelers')
             .update({ verdubbelaar: true })
@@ -612,9 +612,9 @@ function Spelavond() {
         }
       }
 
-      // Extra: Als uitdager een hoog spel wint ZONDER verdubbelaar, krijgt hij er 1 terug
-      if (!verdubbeld && isHoogSpel && gemaakt && beslisboom.data.uitdager_id) {
-        console.log('Hoog spel gewonnen zonder verdubbelaar, teruggeven aan uitdager:', beslisboom.data.uitdager_id);
+      // Extra: Als uitdager een spel wint dat verdubbelaar teruggeeft ZONDER er eentje te gebruiken
+      if (!verdubbeld && geeftVerdubbelaarTerug && gemaakt && beslisboom.data.uitdager_id) {
+        console.log('Spel gewonnen zonder verdubbelaar, teruggeven aan uitdager:', beslisboom.data.uitdager_id);
         await supabase
           .from('avond_spelers')
           .update({ verdubbelaar: true })
