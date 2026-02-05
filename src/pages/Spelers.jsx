@@ -108,6 +108,14 @@ function Spelers({ user, onLogout }) {
     if (geselecteerd.size !== 1) return;
 
     const spelerId = Array.from(geselecteerd)[0];
+    const speler = spelers.find(s => s.id === spelerId);
+
+    // Protection: Cannot edit linked player
+    if (speler.profiles && speler.profiles.length > 0) {
+      alert('Gekoppelde spelers kunnen niet worden bewerkt.');
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('spelers')
@@ -125,6 +133,13 @@ function Spelers({ user, onLogout }) {
     } catch (err) {
       console.error('Fout bij opslaan speler:', err);
     }
+  };
+
+  const isLidSelected = () => {
+    return Array.from(geselecteerd).some(id => {
+      const s = spelers.find(sp => sp.id === id);
+      return s && s.profiles && s.profiles.length > 0;
+    });
   };
 
   return (
@@ -167,30 +182,78 @@ function Spelers({ user, onLogout }) {
             />
           </div>
         ) : (
-          <div className="space-y-2">
-            {spelers.map((speler, index) => (
-              <div
-                key={speler.id}
-                className={`flex items-center p-4 rounded-xl transition-all cursor-pointer
-                  ${geselecteerd.has(speler.id)
-                    ? 'bg-gradient-card text-white shadow-button'
-                    : 'bg-gray-50 hover:bg-gray-100'}`}
-                onClick={() => handleSelecteer(speler.id)}
-              >
-                <input
-                  type="checkbox"
-                  className="w-5 h-5 mr-4 cursor-pointer accent-rikken-accent"
-                  checked={geselecteerd.has(speler.id)}
-                  onChange={() => { }}
-                />
-                <span className="text-lg font-medium flex-1">
-                  {index + 1}. {speler.naam}
-                  {speler.profiles && speler.profiles.length > 0 && (
-                    <span className="ml-2 text-xl" title="Gekoppeld account">👤</span>
-                  )}
-                </span>
+          <div className="space-y-6">
+            {/* Geregistreerde Leden Section */}
+            {spelers.filter(s => s.profiles && s.profiles.length > 0).length > 0 && (
+              <div>
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-2 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-rikken-blue rounded-full"></span>
+                  Geregistreerde Leden
+                </h3>
+                <div className="space-y-2">
+                  {spelers.filter(s => s.profiles && s.profiles.length > 0).map((speler) => (
+                    <div
+                      key={speler.id}
+                      className={`flex items-center p-4 rounded-xl transition-all cursor-pointer
+                        ${geselecteerd.has(speler.id)
+                          ? 'bg-gradient-card text-white shadow-button'
+                          : 'bg-blue-50/50 hover:bg-blue-50 border border-blue-100/50'}`}
+                      onClick={() => handleSelecteer(speler.id)}
+                    >
+                      <input
+                        type="checkbox"
+                        className="w-5 h-5 mr-4 cursor-pointer accent-white"
+                        checked={geselecteerd.has(speler.id)}
+                        readOnly
+                      />
+                      <span className="text-lg font-medium flex-1">
+                        {speler.naam}
+                        <span className="ml-2 text-xl" title="Gekoppeld account">👤</span>
+                      </span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${geselecteerd.has(speler.id) ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-600'
+                        }`}>
+                        Lid
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
+            )}
+
+            {/* Gasten Section */}
+            <div>
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-2 flex items-center gap-2 mt-4">
+                <span className="w-1.5 h-1.5 bg-gray-300 rounded-full"></span>
+                Gasten
+              </h3>
+              <div className="space-y-2">
+                {spelers.filter(s => !s.profiles || s.profiles.length === 0).map((speler) => (
+                  <div
+                    key={speler.id}
+                    className={`flex items-center p-4 rounded-xl transition-all cursor-pointer
+                      ${geselecteerd.has(speler.id)
+                        ? 'bg-gradient-card text-white shadow-button'
+                        : 'bg-gray-50 hover:bg-gray-100'}`}
+                    onClick={() => handleSelecteer(speler.id)}
+                  >
+                    <input
+                      type="checkbox"
+                      className="w-5 h-5 mr-4 cursor-pointer accent-rikken-accent"
+                      checked={geselecteerd.has(speler.id)}
+                      readOnly
+                    />
+                    <span className="text-lg font-medium flex-1">{speler.naam}</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${geselecteerd.has(speler.id) ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-500'
+                      }`}>
+                      Gast
+                    </span>
+                  </div>
+                ))}
+                {spelers.filter(s => !s.profiles || s.profiles.length === 0).length === 0 && (
+                  <p className="text-center py-4 text-gray-400 italic text-sm">Geen gasten</p>
+                )}
+              </div>
+            </div>
           </div>
         )}
         {spelers.length === 0 && !editMode && (
@@ -216,15 +279,17 @@ function Spelers({ user, onLogout }) {
           <>
             <button
               onClick={handleEdit}
-              className={`btn-primary flex-1 ${geselecteerd.size !== 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
-              disabled={geselecteerd.size !== 1}
+              className={`btn-primary flex-1 ${geselecteerd.size !== 1 || isLidSelected() ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={geselecteerd.size !== 1 || isLidSelected()}
+              title={isLidSelected() ? "Gekoppelde spelers kunnen niet bewerkt worden" : ""}
             >
               ✏️ Edit
             </button>
             <button
               onClick={handleWis}
-              className={`btn-danger flex-1 ${geselecteerd.size === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
-              disabled={geselecteerd.size === 0}
+              className={`btn-danger flex-1 ${geselecteerd.size === 0 || isLidSelected() ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={geselecteerd.size === 0 || isLidSelected()}
+              title={isLidSelected() ? "Gekoppelde spelers kunnen niet verwijderd worden" : ""}
             >
               🗑️ Wis
             </button>

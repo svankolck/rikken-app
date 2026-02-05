@@ -5,23 +5,43 @@ import { supabase } from '../lib/supabase';
 export default function ManageUsers({ user }) {
     const navigate = useNavigate();
     const [profiles, setProfiles] = useState([]);
+    const [availableSpelers, setAvailableSpelers] = useState([]);
+    const [selectedSpelerForProfile, setSelectedSpelerForProfile] = useState({}); // {profileId: spelerId}
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
     useEffect(() => {
-        loadProfiles();
+        loadData();
     }, []);
 
-    const loadProfiles = async () => {
+    const loadData = async () => {
         try {
             setLoading(true);
-            const { data, error: fetchError } = await supabase
+            // 1. Fetch profiles
+            const { data: profileData, error: profileError } = await supabase
                 .from('profiles')
                 .select('*')
                 .order('created_at', { ascending: false });
 
-            if (fetchError) throw fetchError;
-            setProfiles(data || []);
+            if (profileError) throw profileError;
+            setProfiles(profileData || []);
+
+            // 2. Fetch all players
+            const { data: spelerData, error: spelerError } = await supabase
+                .from('spelers')
+                .select(`
+                    id, 
+                    naam,
+                    profiles(id)
+                `)
+                .order('naam');
+
+            if (spelerError) throw spelerError;
+
+            // 3. Filter for guest players (those who don't have a profile linked)
+            const guests = spelerData.filter(s => !s.profiles || s.profiles.length === 0);
+            setAvailableSpelers(guests);
+
         } catch (err) {
             setError(err.message);
         } finally {
@@ -32,22 +52,11 @@ export default function ManageUsers({ user }) {
     const handleApprove = async (profile) => {
         try {
             setError('');
-
-            // 1. Check if player exists with this name (case-insensitive-ish)
-            const { data: existingSpelers, error: spelerError } = await supabase
-                .from('spelers')
-                .select('id')
-                .ilike('naam', profile.first_name)
-                .limit(1);
-
-            if (spelerError) throw spelerError;
+            const selectedId = selectedSpelerForProfile[profile.id];
 
             let spelerId;
 
-            if (existingSpelers && existingSpelers.length > 0) {
-                // Link to existing player
-                spelerId = existingSpelers[0].id;
-            } else {
+            if (selectedId === 'NEW') {
                 // Create new player
                 const { data: newSpeler, error: createError } = await supabase
                     .from('spelers')
@@ -57,6 +66,11 @@ export default function ManageUsers({ user }) {
 
                 if (createError) throw createError;
                 spelerId = newSpeler.id;
+            } else if (selectedId) {
+                // Use selected existing guest
+                spelerId = selectedId;
+            } else {
+                throw new Error('Selecteer een speler of kies "Nieuwe speler aanmaken"');
             }
 
             // 2. Update profile with approved status and speler_id
@@ -71,8 +85,8 @@ export default function ManageUsers({ user }) {
             if (updateError) throw updateError;
 
             // 3. Refresh list
-            await loadProfiles();
-            alert(`✅ ${profile.email} is goedgekeurd en gekoppeld aan speler ${profile.first_name}!`);
+            await loadData();
+            alert(`✅ ${profile.email} is goedgekeurd!`);
         } catch (err) {
             setError(`Fout bij goedkeuren: ${err.message}`);
         }
@@ -132,12 +146,32 @@ export default function ManageUsers({ user }) {
                             <div className="flex justify-between items-start">
                                 <div>
                                     <p className="font-bold text-gray-800">{p.first_name}</p>
-                                    <p className="text-sm text-gray-500">{p.email}</p>
+                                    <p className="text-sm text-gray-500 mb-3">{p.email}</p>
+
+                                    <div className="mt-2">
+                                        <label className="text-xs font-bold text-gray-400 uppercase">Koppel aan:</label>
+                                        <select
+                                            className="w-full mt-1 p-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500 outline-none"
+                                            value={selectedSpelerForProfile[p.id] || ''}
+                                            onChange={(e) => setSelectedSpelerForProfile(prev => ({
+                                                ...prev,
+                                                [p.id]: e.target.value
+                                            }))}
+                                        >
+                                            <option value="">-- Maak een keuze --</option>
+                                            <option value="NEW">✨ Nieuwe speler aanmaken</option>
+                                            <optgroup label="Bestaande Gasten">
+                                                {availableSpelers.map(s => (
+                                                    <option key={s.id} value={s.id}>{s.naam}</option>
+                                                ))}
+                                            </optgroup>
+                                        </select>
+                                    </div>
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="flex flex-col gap-2">
                                     <button
                                         onClick={() => handleApprove(p)}
-                                        className="p-2 bg-green-500 text-white rounded-lg shadow-sm hover:bg-green-600 transition"
+                                        className="p-3 bg-green-500 text-white rounded-xl shadow-button hover:bg-green-600 transition flex items-center justify-center"
                                         title="Goedkeuren"
                                     >
                                         <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor">
