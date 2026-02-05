@@ -1025,12 +1025,12 @@ function Spelavond() {
                   className={`text-center ${isInactief ? 'opacity-50' : ''}`}
                 >
                   <div className={`font-bold p-2 rounded-xl text-sm shadow-sm mb-2 ${isInactief
-                      ? 'bg-gray-400 text-white'
-                      : isStilzitter
-                        ? 'bg-orange-400 text-white'
-                        : isDeler
-                          ? 'bg-gradient-to-br from-purple-500 to-indigo-600 text-gray-900'
-                          : 'bg-gradient-to-br from-purple-500 to-indigo-600 text-white'
+                    ? 'bg-gray-400 text-white'
+                    : isStilzitter
+                      ? isDeler
+                        ? 'bg-orange-400 text-gray-900'
+                        : 'bg-orange-400 text-white'
+                      : 'bg-gradient-to-br from-purple-500 to-indigo-600 text-white'
                     } ${heeftVerdubbelaar && !isInactief && !isStilzitter ? 'ring-2 ring-red-500' : ''}`}>
                     <span className={isDeler && !isInactief ? 'font-extrabold' : ''}>{displayNaam}</span>
                   </div>
