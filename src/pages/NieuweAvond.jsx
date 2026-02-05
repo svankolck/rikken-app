@@ -129,7 +129,7 @@ function NieuweAvond() {
               <p className="text-gray-400 italic text-center py-2">Geen spelers geselecteerd</p>
             ) : (
               geselecteerdeSpelers.map((spelerId, index) => (
-                <div key={spelerId} className="flex items-center gap-2 p-2 bg-gradient-card text-white rounded-xl shadow-sm">
+                <div key={spelerId} className="flex items-center gap-2 p-2 bg-purple-600 text-white rounded-xl shadow-sm">
                   <span className="font-bold text-base w-6">{index + 1}.</span>
                   <span className="flex-1 font-medium text-sm">{getSpelerNaam(spelerId)}</span>
                   <button
@@ -160,7 +160,7 @@ function NieuweAvond() {
                   <button
                     key={speler.id}
                     onClick={() => handleSpelerToggle(speler.id)}
-                    className="py-2.5 px-3 bg-white hover:bg-gradient-card hover:text-white rounded-xl border-2 border-gray-100 hover:border-transparent transition-all shadow-sm hover:shadow-button font-medium text-sm"
+                    className="py-2.5 px-3 bg-white hover:bg-purple-100 text-gray-800 rounded-xl border-2 border-gray-100 hover:border-purple-300 transition-all shadow-sm hover:shadow-md font-medium text-sm"
                   >
                     {speler.naam}
                   </button>
@@ -195,8 +195,8 @@ function NieuweAvond() {
         <button
           onClick={handleStart}
           className={`btn-primary text-lg px-12 py-3.5 ${geselecteerdeSpelers.length < 4 || !geselecteerdeLocatie
-              ? 'opacity-50 cursor-not-allowed'
-              : ''
+            ? 'opacity-50 cursor-not-allowed'
+            : ''
             }`}
           disabled={geselecteerdeSpelers.length < 4 || !geselecteerdeLocatie}
         >
