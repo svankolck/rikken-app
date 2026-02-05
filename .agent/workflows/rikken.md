@@ -46,11 +46,24 @@ Push naar `main` branch → Vercel auto-deploy.
 - ✅ Spelavond pagina laadt
 - ✅ Beslisboom werkt
 - ✅ Rondes worden opgeslagen
-- ⚠️ Scoring is vereenvoudigd (+10/-10)
-- ❌ Volledige puntentelling nog niet geïmplementeerd
-- ❌ Analytics/Eindstand pagina's nog niet omgezet
+- ✅ Start deler selectie en rotatie
+- ✅ Volledige Rikken scoring geïmplementeerd (punten_settings)
+- ✅ Meerdere spelvormen (Misère, Piek, etc.) correct berekend
+- ✅ Allemaal Piek multi-row saving
+- ✅ Schoppen Mie scoring (vrouw + laatste slag + bonus)
+- ✅ Eindstand pagina met correcte scoring
+- ✅ UI fixes (scorebord leesbaarheid, Meerdere knop)
+- ⏳ Analytics nog niet omgezet naar Supabase
+- ⏳ AdminPanel nog niet omgezet
+
+## Database Kolommen (rondes tabel)
+- `schoppen_vrouw_id` - Wie had de Schoppen Vrouw
+- `laatste_slag_id` - Wie had de laatste slag
+- `verdubbelaar_speler_id` - Wie heeft verdubbeld
 
 ## Belangrijke Bestanden
-- `/root/rikken-app-new/src/pages/Spelavond.jsx` - Hoofd game logic (1800+ regels)
+- `/root/rikken-app-new/src/pages/Spelavond.jsx` - Hoofd game logic (1900+ regels)
+- `/root/rikken-app-new/src/pages/Eindstand.jsx` - Eindstand met correcte scoring
 - `/root/rikken-app-new/src/lib/supabase.js` - Supabase client
 - `/root/rikken-app-new/vercel.json` - SPA routing config
+
