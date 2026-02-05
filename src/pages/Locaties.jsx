@@ -133,7 +133,7 @@ function Locaties({ user, onLogout }) {
   };
 
   return (
-    <div className="max-w-md mx-auto p-6 min-h-screen page-container">
+    <div className="max-w-md mx-auto p-4 min-h-screen page-container">
       {/* Modern Header */}
       <div className="page-header">
         <button onClick={() => navigate('/')} className="back-button">

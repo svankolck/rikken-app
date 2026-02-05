@@ -35,12 +35,12 @@ function Analytics({ user, onLogout }) {
       setAvonden(avondenData);
       setSpelerStats(statsData);
       setJaarOverzicht(jaarData);
-      
+
       // Set dashboard data (simple summary)
       const topSpeler = statsData.length > 0 ? statsData[0] : null;
       setDashboard({
         totaalAvonden: avondenData.length,
-        gemiddeldeScore: statsData.length > 0 
+        gemiddeldeScore: statsData.length > 0
           ? Math.round(statsData.reduce((sum, s) => sum + (s.gemiddelde_punten || 0), 0) / statsData.length)
           : 0,
         topSpeler: topSpeler ? {
@@ -55,7 +55,7 @@ function Analytics({ user, onLogout }) {
         activiteit: [],
         topSpelvormen: []
       });
-      
+
       // Set score trends (empty for now, can be enhanced later)
       setScoreTrends(null);
     } catch (err) {
@@ -106,12 +106,12 @@ function Analytics({ user, onLogout }) {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6 min-h-screen pb-24 page-container">
+    <div className="max-w-md mx-auto p-4 min-h-screen pb-24 page-container">
       {/* Modern Header */}
       <div className="page-header">
         <button onClick={() => navigate('/')} className="back-button">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
         <h1 className="text-2xl font-bold">📊 Analytics</h1>
@@ -121,41 +121,37 @@ function Analytics({ user, onLogout }) {
       <div className="mt-6 flex gap-2 bg-white/50 backdrop-blur-sm p-2 rounded-2xl overflow-x-auto">
         <button
           onClick={() => setActiveTab('dashboard')}
-          className={`flex-shrink-0 px-4 py-3 font-semibold rounded-xl transition-all ${
-            activeTab === 'dashboard'
+          className={`flex-shrink-0 px-4 py-3 font-semibold rounded-xl transition-all ${activeTab === 'dashboard'
               ? 'bg-gradient-main text-white shadow-button'
               : 'text-gray-600 hover:bg-white/50'
-          }`}
+            }`}
         >
           🎯 Dashboard
         </button>
         <button
           onClick={() => setActiveTab('avonden')}
-          className={`flex-shrink-0 px-4 py-3 font-semibold rounded-xl transition-all ${
-            activeTab === 'avonden'
+          className={`flex-shrink-0 px-4 py-3 font-semibold rounded-xl transition-all ${activeTab === 'avonden'
               ? 'bg-gradient-main text-white shadow-button'
               : 'text-gray-600 hover:bg-white/50'
-          }`}
+            }`}
         >
           🎲 Avonden
         </button>
         <button
           onClick={() => setActiveTab('spelers')}
-          className={`flex-shrink-0 px-4 py-3 font-semibold rounded-xl transition-all ${
-            activeTab === 'spelers'
+          className={`flex-shrink-0 px-4 py-3 font-semibold rounded-xl transition-all ${activeTab === 'spelers'
               ? 'bg-gradient-main text-white shadow-button'
               : 'text-gray-600 hover:bg-white/50'
-          }`}
+            }`}
         >
           👥 Spelers
         </button>
         <button
           onClick={() => setActiveTab('jaar')}
-          className={`flex-shrink-0 px-4 py-3 font-semibold rounded-xl transition-all ${
-            activeTab === 'jaar'
+          className={`flex-shrink-0 px-4 py-3 font-semibold rounded-xl transition-all ${activeTab === 'jaar'
               ? 'bg-gradient-main text-white shadow-button'
               : 'text-gray-600 hover:bg-white/50'
-          }`}
+            }`}
         >
           📅 Jaar
         </button>
@@ -211,11 +207,10 @@ function Analytics({ user, onLogout }) {
                   {dashboard.activiteit.map((item) => (
                     <div key={item.maand} className="flex-shrink-0 text-center">
                       <div
-                        className={`w-16 h-16 rounded-xl flex items-center justify-center font-bold text-white ${
-                          item.aantal_avonden >= 4 ? 'bg-green-600' :
-                          item.aantal_avonden >= 2 ? 'bg-green-400' :
-                          'bg-green-200 text-gray-700'
-                        }`}
+                        className={`w-16 h-16 rounded-xl flex items-center justify-center font-bold text-white ${item.aantal_avonden >= 4 ? 'bg-green-600' :
+                            item.aantal_avonden >= 2 ? 'bg-green-400' :
+                              'bg-green-200 text-gray-700'
+                          }`}
                       >
                         {item.aantal_avonden}
                       </div>
@@ -275,11 +270,10 @@ function Analytics({ user, onLogout }) {
                       <button
                         key={naam}
                         onClick={() => handleLegendClick(naam)}
-                        className={`px-3 py-1.5 rounded-full text-sm font-semibold transition-all ${
-                          visibleLines[naam]
+                        className={`px-3 py-1.5 rounded-full text-sm font-semibold transition-all ${visibleLines[naam]
                             ? 'shadow-sm'
                             : 'opacity-50 grayscale'
-                        }`}
+                          }`}
                         style={{
                           backgroundColor: visibleLines[naam] ? color : '#E5E7EB',
                           color: visibleLines[naam] ? '#FFFFFF' : '#6B7280'
@@ -347,7 +341,7 @@ function Analytics({ user, onLogout }) {
                       <p className="text-xl font-bold">{avond.aantal_rondes}</p>
                       <p className="text-xs">rondes</p>
                     </div>
-                    
+
                     {/* Datum en locatie in het midden */}
                     <div className="flex-1">
                       <p className="font-bold text-base text-gray-800">{formatDatum(avond.datum)}</p>
@@ -355,7 +349,7 @@ function Analytics({ user, onLogout }) {
                         📍 {avond.locatie || 'Geen locatie'}
                       </p>
                     </div>
-                    
+
                     {/* Totale pot rechts */}
                     <div className="text-right">
                       <p className="text-xl font-bold text-gray-800">{avond.totale_pot || 0}</p>
@@ -438,12 +432,11 @@ function Analytics({ user, onLogout }) {
                         .map((speler, index) => (
                           <div
                             key={speler.naam}
-                            className={`flex justify-between items-center p-4 rounded-xl ${
-                              index === 0 ? 'bg-gradient-to-r from-yellow-200 to-yellow-300' :
-                              index === 1 ? 'bg-gradient-to-r from-gray-200 to-gray-300' :
-                              index === 2 ? 'bg-gradient-to-r from-orange-200 to-orange-300' :
-                              'bg-gray-50'
-                            }`}
+                            className={`flex justify-between items-center p-4 rounded-xl ${index === 0 ? 'bg-gradient-to-r from-yellow-200 to-yellow-300' :
+                                index === 1 ? 'bg-gradient-to-r from-gray-200 to-gray-300' :
+                                  index === 2 ? 'bg-gradient-to-r from-orange-200 to-orange-300' :
+                                    'bg-gray-50'
+                              }`}
                           >
                             <div className="flex items-center gap-3">
                               <span className="text-2xl">

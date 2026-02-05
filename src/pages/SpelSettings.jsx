@@ -114,7 +114,7 @@ function SpelSettings() {
   const speciaal = settings.filter(s => !s.naam?.includes('Rik') && !s.naam?.includes('alleen'));
 
   return (
-    <div className="max-w-md mx-auto p-6 min-h-screen pb-24 page-container">
+    <div className="max-w-md mx-auto p-4 min-h-screen pb-24 page-container">
       {/* Modern Header */}
       <div className="page-header">
         <button onClick={() => navigate('/')} className="back-button">

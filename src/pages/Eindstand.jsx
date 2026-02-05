@@ -231,7 +231,7 @@ function Eindstand({ user, onLogout }) {
 
   if (loading) {
     return (
-      <div className="max-w-md mx-auto p-6 min-h-screen page-container">
+      <div className="max-w-md mx-auto p-4 min-h-screen page-container">
         <div className="page-header justify-between">
           <button onClick={() => navigate('/')} className="back-button">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -250,7 +250,7 @@ function Eindstand({ user, onLogout }) {
 
   if (error) {
     return (
-      <div className="max-w-md mx-auto p-6 min-h-screen page-container">
+      <div className="max-w-md mx-auto p-4 min-h-screen page-container">
         <div className="page-header justify-between">
           <button onClick={() => navigate('/')} className="back-button">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

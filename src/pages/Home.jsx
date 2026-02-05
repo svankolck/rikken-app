@@ -41,7 +41,7 @@ function Home({ user, onLogout }) {
   };
 
   return (
-    <div className="max-w-md mx-auto p-6 min-h-screen page-container">
+    <div className="max-w-md mx-auto p-4 min-h-screen page-container">
       {/* Modern Header */}
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 24px' }}>
         <div style={{ width: '40px', flexShrink: 0 }}></div>

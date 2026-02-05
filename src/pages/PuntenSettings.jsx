@@ -175,7 +175,7 @@ function PuntenSettings({ user, onLogout }) {
   );
 
   return (
-    <div className="max-w-md mx-auto p-6 min-h-screen pb-24 page-container">
+    <div className="max-w-md mx-auto p-4 min-h-screen pb-24 page-container">
       <div className="page-header">
         <button onClick={() => navigate('/')} className="back-button">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

@@ -38,11 +38,11 @@ function SpelerDetail({ user, onLogout }) {
 
   if (loading) {
     return (
-      <div className="max-w-md mx-auto p-6 min-h-screen page-container">
+      <div className="max-w-md mx-auto p-4 min-h-screen page-container">
         <div className="page-header justify-between">
           <button onClick={() => navigate('/analytics')} className="back-button">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
           <h1 className="text-2xl font-bold">Speler Details</h1>
@@ -57,11 +57,11 @@ function SpelerDetail({ user, onLogout }) {
 
   if (error) {
     return (
-      <div className="max-w-md mx-auto p-6 min-h-screen page-container">
+      <div className="max-w-md mx-auto p-4 min-h-screen page-container">
         <div className="page-header justify-between">
           <button onClick={() => navigate('/analytics')} className="back-button">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
           <h1 className="text-2xl font-bold">Speler Details</h1>
@@ -82,11 +82,11 @@ function SpelerDetail({ user, onLogout }) {
 
   if (!speler) {
     return (
-      <div className="max-w-md mx-auto p-6 min-h-screen page-container">
+      <div className="max-w-md mx-auto p-4 min-h-screen page-container">
         <div className="page-header justify-between">
           <button onClick={() => navigate('/analytics')} className="back-button">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
           <h1 className="text-2xl font-bold">Speler Details</h1>
@@ -110,7 +110,7 @@ function SpelerDetail({ user, onLogout }) {
       <div className="page-header justify-between">
         <button onClick={() => navigate('/analytics')} className="back-button">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
         <h1 className="text-2xl font-bold">{speler.naam}</h1>

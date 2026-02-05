@@ -55,7 +55,7 @@ function Account({ user, onLogout }) {
   };
 
   return (
-    <div className="max-w-xl mx-auto p-6 min-h-screen page-container">
+    <div className="max-w-md mx-auto p-4 min-h-screen page-container">
       <div className="page-header justify-between items-center">
         <button onClick={() => navigate(-1)} className="btn-secondary px-4 py-2 text-sm">
           ← Terug

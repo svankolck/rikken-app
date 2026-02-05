@@ -42,9 +42,9 @@ function AvondDetail() {
   // Transform data voor line chart (score evolutie)
   const getScoreEvolutieData = () => {
     if (!data?.scoreEvolutie) return [];
-    
+
     const rondeNummers = [...new Set(data.scoreEvolutie.map(s => s.ronde_nummer))];
-    
+
     return rondeNummers.map(rondeNummer => {
       const punt = { ronde: rondeNummer };
       data.spelers.forEach(speler => {
@@ -77,7 +77,7 @@ function AvondDetail() {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto p-6 min-h-screen page-container">
+      <div className="max-w-md mx-auto p-4 min-h-screen page-container">
         <div className="text-center py-20">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-rikken-blue"></div>
           <p className="mt-4 text-gray-600">Laden...</p>
@@ -88,7 +88,7 @@ function AvondDetail() {
 
   if (!data) {
     return (
-      <div className="max-w-6xl mx-auto p-6 min-h-screen page-container">
+      <div className="max-w-md mx-auto p-4 min-h-screen page-container">
         <div className="text-center py-20">
           <p className="text-gray-600">Geen data gevonden</p>
         </div>
@@ -101,12 +101,12 @@ function AvondDetail() {
   const spelvormenData = getSpelvormenData();
 
   return (
-    <div className="max-w-6xl mx-auto p-6 min-h-screen pb-24 page-container">
+    <div className="max-w-md mx-auto p-4 min-h-screen pb-24 page-container">
       {/* Header */}
       <div className="page-header">
         <button onClick={() => navigate('/analytics')} className="back-button">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
         <h1 className="text-2xl font-bold">📊 Avond Details</h1>
@@ -177,9 +177,9 @@ function AvondDetail() {
               {eindstandData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={
                   index === 0 ? '#FFD700' : // Goud
-                  index === 1 ? '#C0C0C0' : // Zilver
-                  index === 2 ? '#CD7F32' : // Brons
-                  COLORS[index % COLORS.length]
+                    index === 1 ? '#C0C0C0' : // Zilver
+                      index === 2 ? '#CD7F32' : // Brons
+                        COLORS[index % COLORS.length]
                 } />
               ))}
             </Bar>
