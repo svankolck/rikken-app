@@ -103,7 +103,7 @@ function Home({ user, onLogout }) {
 
       {/* Active avond banner */}
       {actiefAvond && (
-        <div className="mb-6 p-5 bg-gradient-to-r from-yellow-300 to-orange-300 rounded-3xl shadow-soft animate-pulse">
+        <div className="mt-6 mb-6 p-5 bg-gradient-to-r from-yellow-300 to-orange-300 rounded-3xl shadow-soft animate-pulse">
           <p className="text-center font-semibold text-gray-800 mb-3">
             🎯 Er is een actieve spelavond!
           </p>
