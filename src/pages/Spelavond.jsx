@@ -252,7 +252,7 @@ function Spelavond() {
         naam: spelersMap[as.speler_id] || 'Onbekend',
         volgorde: as.volgorde,
         actief: as.actief,
-        verdubbelaar: 1 // Default for now
+        verdubbelaar: as.verdubbelaar === true || as.verdubbelaar === 1 ? 1 : 0
       }));
 
       const avondObj = {
@@ -588,6 +588,30 @@ function Spelavond() {
           });
 
         if (error) throw error;
+      }
+
+      // Verdubbelaar logica: consumeren en evt terugkrijgen
+      if (verdubbeld && verdubbelaar_speler_id) {
+        // Check of het spel een "hoog" spel is dat verdubbelaar teruggeeft bij winst
+        const hogeSpellen = ['Misère', 'Open Misère', 'Piek', 'Open Piek', 'Allemaal Piek'];
+        const isHoogSpel = hogeSpellen.includes(spelInfo?.naam);
+
+        if (isHoogSpel && gemaakt) {
+          // Speler wint hoog spel: verdubbelaar NIET consumeren (of teruggeven)
+          console.log('Hoog spel gewonnen, verdubbelaar behouden:', verdubbelaar_speler_id);
+          // Zorg dat verdubbelaar TRUE blijft
+          await supabase
+            .from('avond_spelers')
+            .update({ verdubbelaar: true })
+            .eq('id', verdubbelaar_speler_id);
+        } else {
+          // Consumeer verdubbelaar
+          console.log('Verdubbelaar consumeren voor:', verdubbelaar_speler_id);
+          await supabase
+            .from('avond_spelers')
+            .update({ verdubbelaar: false })
+            .eq('id', verdubbelaar_speler_id);
+        }
       }
 
       // Als het de laatste ronde is (Schoppen Mie), sluit de avond af en ga naar eindstand
