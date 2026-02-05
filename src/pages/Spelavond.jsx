@@ -591,15 +591,13 @@ function Spelavond() {
       }
 
       // Verdubbelaar logica: consumeren en evt terugkrijgen
-      if (verdubbeld && verdubbelaar_speler_id) {
-        // Check of het spel een "hoog" spel is dat verdubbelaar teruggeeft bij winst
-        const hogeSpellen = ['Misère', 'Open Misère', 'Piek', 'Open Piek', 'Allemaal Piek'];
-        const isHoogSpel = hogeSpellen.includes(spelInfo?.naam);
+      const hogeSpellen = ['Misère', 'Open Misère', 'Piek', 'Open Piek', 'Allemaal Piek'];
+      const isHoogSpel = hogeSpellen.includes(spelInfo?.naam);
 
+      if (verdubbeld && verdubbelaar_speler_id) {
         if (isHoogSpel && gemaakt) {
-          // Speler wint hoog spel: verdubbelaar NIET consumeren (of teruggeven)
-          console.log('Hoog spel gewonnen, verdubbelaar behouden:', verdubbelaar_speler_id);
-          // Zorg dat verdubbelaar TRUE blijft
+          // Speler wint hoog spel met verdubbelaar: behoud verdubbelaar
+          console.log('Hoog spel gewonnen met verdubbelaar, behouden:', verdubbelaar_speler_id);
           await supabase
             .from('avond_spelers')
             .update({ verdubbelaar: true })
@@ -612,6 +610,15 @@ function Spelavond() {
             .update({ verdubbelaar: false })
             .eq('id', verdubbelaar_speler_id);
         }
+      }
+
+      // Extra: Als uitdager een hoog spel wint ZONDER verdubbelaar, krijgt hij er 1 terug
+      if (!verdubbeld && isHoogSpel && gemaakt && beslisboom.data.uitdager_id) {
+        console.log('Hoog spel gewonnen zonder verdubbelaar, teruggeven aan uitdager:', beslisboom.data.uitdager_id);
+        await supabase
+          .from('avond_spelers')
+          .update({ verdubbelaar: true })
+          .eq('id', beslisboom.data.uitdager_id);
       }
 
       // Als het de laatste ronde is (Schoppen Mie), sluit de avond af en ga naar eindstand
@@ -1055,7 +1062,7 @@ function Spelavond() {
                         ? 'bg-orange-400 text-gray-900'
                         : 'bg-orange-400 text-white'
                       : 'bg-gradient-to-br from-purple-500 to-indigo-600 text-white'
-                    } ${heeftVerdubbelaar && !isInactief && !isStilzitter ? 'ring-2 ring-red-500' : ''}`}>
+                    } ${heeftVerdubbelaar && !isInactief ? 'ring-2 ring-red-500' : ''}`}>
                     <span className={isDeler && !isInactief ? 'font-extrabold' : ''}>{displayNaam}</span>
                   </div>
                   <div className={`text-xl font-bold ${isInactief ? 'text-gray-400' : 'text-gray-900'}`}>
