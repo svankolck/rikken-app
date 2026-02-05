@@ -24,8 +24,18 @@ function Spelers({ user, onLogout }) {
         `)
         .order('naam');
 
-      if (error) throw error;
-      setSpelers(data || []);
+      if (error) {
+        console.warn('Kon profiles niet joinen, fallback naar simpele fetch:', error);
+        const { data: simpleData, error: simpleError } = await supabase
+          .from('spelers')
+          .select('*')
+          .order('naam');
+
+        if (simpleError) throw simpleError;
+        setSpelers(simpleData || []);
+      } else {
+        setSpelers(data || []);
+      }
     } catch (err) {
       console.error('Fout bij laden spelers:', err);
     }
