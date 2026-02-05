@@ -37,60 +37,82 @@ function App() {
 
   // Check for existing Supabase session on mount
   useEffect(() => {
+    let mounted = true;
+
     const initAuth = async () => {
-      // Get current session
-      const { data: { session } } = await supabase.auth.getSession();
+      try {
+        // Get current session
+        const { data: { session }, error } = await supabase.auth.getSession();
 
-      if (session?.user) {
-        // Fetch profile data
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role, approved, speler_id')
-          .eq('id', session.user.id)
-          .maybeSingle(); // Use maybeSingle to avoid errors if missing
+        if (error) throw error;
 
-        const isSV = session.user.email === 'svankolck@gmail.com';
-        setIsAuthenticated(true);
-        setUser({
-          id: session.user.id,
-          email: session.user.email,
-          role: isSV ? 'admin' : (profile?.role || 'display'),
-          approved: isSV ? true : (profile?.approved || false),
-          speler_id: profile?.speler_id
-        });
+        if (session?.user && mounted) {
+          // Fetch profile data
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('role, approved, speler_id')
+            .eq('id', session.user.id)
+            .maybeSingle();
+
+          if (profileError) console.warn('Profile fetch error:', profileError);
+
+          const isSV = session.user.email === 'svankolck@gmail.com';
+          setIsAuthenticated(true);
+          setUser({
+            id: session.user.id,
+            email: session.user.email,
+            role: isSV ? 'admin' : (profile?.role || 'display'),
+            approved: isSV ? true : (profile?.approved || false),
+            speler_id: profile?.speler_id
+          });
+        }
+      } catch (err) {
+        console.error('Auth initialization error:', err);
+      } finally {
+        if (mounted) setLoading(false);
       }
-
-      setLoading(false);
     };
 
     initAuth();
 
     // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
-        // Fetch profile data
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role, approved, speler_id')
-          .eq('id', session.user.id)
-          .maybeSingle();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
 
-        const isSV = session.user.email === 'svankolck@gmail.com';
-        setIsAuthenticated(true);
-        setUser({
-          id: session.user.id,
-          email: session.user.email,
-          role: isSV ? 'admin' : (profile?.role || 'display'),
-          approved: isSV ? true : (profile?.approved || false),
-          speler_id: profile?.speler_id
-        });
+      if (session?.user) {
+        try {
+          // Fetch profile data
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role, approved, speler_id')
+            .eq('id', session.user.id)
+            .maybeSingle();
+
+          const isSV = session.user.email === 'svankolck@gmail.com';
+          setIsAuthenticated(true);
+          setUser({
+            id: session.user.id,
+            email: session.user.email,
+            role: isSV ? 'admin' : (profile?.role || 'display'),
+            approved: isSV ? true : (profile?.approved || false),
+            speler_id: profile?.speler_id
+          });
+        } catch (err) {
+          console.error('Auth state change error:', err);
+        }
       } else {
         setIsAuthenticated(false);
         setUser(null);
       }
+
+      // Safety: always ensure loading is false after state change if we are still loading
+      setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleLogin = (userData) => {
