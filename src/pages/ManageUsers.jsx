@@ -57,7 +57,6 @@ export default function ManageUsers({ user }) {
             let spelerId;
 
             if (selectedId === 'NEW') {
-                // Create new player
                 const { data: newSpeler, error: createError } = await supabase
                     .from('spelers')
                     .insert([{ naam: profile.first_name }])
@@ -67,13 +66,11 @@ export default function ManageUsers({ user }) {
                 if (createError) throw createError;
                 spelerId = newSpeler.id;
             } else if (selectedId) {
-                // Use selected existing guest
                 spelerId = selectedId;
             } else {
                 throw new Error('Selecteer een speler of kies "Nieuwe speler aanmaken"');
             }
 
-            // 2. Update profile with approved status and speler_id
             const { error: updateError } = await supabase
                 .from('profiles')
                 .update({
@@ -83,12 +80,30 @@ export default function ManageUsers({ user }) {
                 .eq('id', profile.id);
 
             if (updateError) throw updateError;
-
-            // 3. Refresh list
             await loadData();
             alert(`✅ ${profile.email} is goedgekeurd!`);
         } catch (err) {
             setError(`Fout bij goedkeuren: ${err.message}`);
+        }
+    };
+
+    const handleUpdateLink = async (profileId, spelerId) => {
+        if (!spelerId) return;
+        try {
+            setError('');
+            setLoading(true);
+
+            const { error: updateError } = await supabase
+                .from('profiles')
+                .update({ speler_id: spelerId === 'NONE' ? null : spelerId })
+                .eq('id', profileId);
+
+            if (updateError) throw updateError;
+            await loadData();
+        } catch (err) {
+            setError(`Fout bij bijwerken koppeling: ${err.message}`);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -196,19 +211,46 @@ export default function ManageUsers({ user }) {
 
             {/* Approved Users */}
             <h2 className="mt-12 mb-4 text-xl font-bold text-gray-800">✅ Goedgekeurde Gebruikers ({approved.length})</h2>
-            <div className="space-y-2">
-                {approved.map(p => (
-                    <div key={p.id} className="card py-3 flex items-center justify-between opacity-80">
-                        <div>
-                            <p className="font-semibold text-gray-700">{p.first_name}</p>
-                            <p className="text-xs text-gray-400">{p.email}</p>
+            <div className="space-y-4">
+                {approved.map(p => {
+                    const linkedSpeler = availableSpelers.find(s => s.id === p.speler_id) ||
+                        // If they are already linked, availableSpelers won't have them
+                        // We should ideally fetch all spelers once for lookup
+                        { naam: 'Gekoppeld' };
+
+                    return (
+                        <div key={p.id} className="card py-3">
+                            <div className="flex items-center justify-between mb-3">
+                                <div>
+                                    <p className="font-semibold text-gray-700">{p.first_name}</p>
+                                    <p className="text-xs text-gray-400">{p.email}</p>
+                                </div>
+                                <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${p.role === 'admin' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
+                                    }`}>
+                                    {p.role}
+                                </span>
+                            </div>
+
+                            <div className="pt-2 border-t border-gray-50">
+                                <label className="text-[10px] font-bold text-gray-400 uppercase">Gekoppeld aan:</label>
+                                <select
+                                    className="w-full mt-1 p-2 text-xs border border-gray-100 rounded-lg outline-none bg-gray-50 focus:bg-white transition"
+                                    value={p.speler_id || 'NONE'}
+                                    onChange={(e) => handleUpdateLink(p.id, e.target.value)}
+                                >
+                                    <option value="NONE">-- Geen koppeling --</option>
+                                    {/* Show the current speler if linked */}
+                                    {p.speler_id && <option value={p.speler_id}>Gekoppeld</option>}
+                                    <optgroup label="Verander naar:">
+                                        {availableSpelers.map(s => (
+                                            <option key={s.id} value={s.id}>{s.naam}</option>
+                                        ))}
+                                    </optgroup>
+                                </select>
+                            </div>
                         </div>
-                        <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${p.role === 'admin' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
-                            }`}>
-                            {p.role}
-                        </span>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
         </div>
     );
