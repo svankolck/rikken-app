@@ -329,7 +329,8 @@ function Spelavond() {
         slagen_nodig: r.spel_settings?.minimaal_slagen || 0,
         gemaakt: r.gemaakt,
         verdubbeld: r.verdubbeld ? 1 : 0,
-        verdubbelaar_naam: r.verdubbelaar_speler_id ? spelerMap[r.verdubbelaar_speler_id] : null
+        verdubbelaar_naam: r.verdubbelaar_speler_id ? spelerMap[r.verdubbelaar_speler_id] : null,
+        scores: [] // Placeholder - could load from scores table if needed
       }));
 
       setRondesDetails(details);
