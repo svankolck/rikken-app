@@ -37,97 +37,60 @@ function App() {
 
   // Check for existing Supabase session on mount
   useEffect(() => {
-    let mounted = true;
-
-    // Safety timeout: always stop loading after 5 seconds max
-    const timeoutId = setTimeout(() => {
-      if (mounted && loading) {
-        console.warn('Auth initialization timed out, forcing loading to false');
-        setLoading(false);
-      }
-    }, 5000);
-
     const initAuth = async () => {
-      try {
-        // Get current session
-        const { data: { session }, error } = await supabase.auth.getSession();
+      // Get current session
+      const { data: { session } } = await supabase.auth.getSession();
 
-        if (error) throw error;
+      if (session?.user) {
+        // Fetch profile data
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role, approved, speler_id')
+          .eq('id', session.user.id)
+          .maybeSingle(); // Use maybeSingle to avoid errors if missing
 
-        if (session?.user && mounted) {
-          // Fetch profile data
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('role, approved, speler_id')
-            .eq('id', session.user.id)
-            .maybeSingle();
-
-          if (profileError) console.warn('Profile fetch error:', profileError);
-
-          const isSV = session.user.email === 'svankolck@gmail.com';
-          setIsAuthenticated(true);
-          setUser({
-            id: session.user.id,
-            email: session.user.email,
-            role: isSV ? 'admin' : (profile?.role || 'display'),
-            approved: isSV ? true : (profile?.approved || false),
-            speler_id: profile?.speler_id
-          });
-          console.log('User state initialized');
-        } else {
-          console.log('No active session found');
-        }
-      } catch (err) {
-        console.error('Auth initialization caught error:', err);
-      } finally {
-        if (mounted) {
-          console.log('Auth initialization completed (finally)');
-          setLoading(false);
-        }
+        const isSV = session.user.email === 'svankolck@gmail.com';
+        setIsAuthenticated(true);
+        setUser({
+          id: session.user.id,
+          email: session.user.email,
+          role: isSV ? 'admin' : (profile?.role || 'display'),
+          approved: isSV ? true : (profile?.approved || false),
+          speler_id: profile?.speler_id
+        });
       }
+
+      setLoading(false);
     };
 
     initAuth();
 
     // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state change event:', event);
-      if (!mounted) return;
-
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
-        try {
-          // Fetch profile data
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role, approved, speler_id')
-            .eq('id', session.user.id)
-            .maybeSingle();
+        // Fetch profile data
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role, approved, speler_id')
+          .eq('id', session.user.id)
+          .maybeSingle();
 
-          const isSV = session.user.email === 'svankolck@gmail.com';
-          setIsAuthenticated(true);
-          setUser({
-            id: session.user.id,
-            email: session.user.email,
-            role: isSV ? 'admin' : (profile?.role || 'display'),
-            approved: isSV ? true : (profile?.approved || false),
-            speler_id: profile?.speler_id
-          });
-        } catch (err) {
-          console.error('Auth state change error:', err);
-        }
+        const isSV = session.user.email === 'svankolck@gmail.com';
+        setIsAuthenticated(true);
+        setUser({
+          id: session.user.id,
+          email: session.user.email,
+          role: isSV ? 'admin' : (profile?.role || 'display'),
+          approved: isSV ? true : (profile?.approved || false),
+          speler_id: profile?.speler_id
+        });
       } else {
         setIsAuthenticated(false);
         setUser(null);
       }
-
-      setLoading(false);
     });
 
-    return () => {
-      mounted = false;
-      clearTimeout(timeoutId);
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleLogin = (userData) => {
