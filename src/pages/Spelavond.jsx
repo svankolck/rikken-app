@@ -1072,7 +1072,7 @@ function Spelavond() {
       <div className="mt-3 card">
         {/* Speler namen met totaal scores */}
         <div className="flex items-start gap-3 mb-4">
-          <div className="w-6 flex-shrink-0"></div>
+          <div className="w-6 ml-1 flex-shrink-0"></div>
           <div className="grid gap-2 flex-1" style={{ gridTemplateColumns: `repeat(${alleSpelers.length}, 1fr)` }}>
             {alleSpelers.map((speler) => {
               const laatsteScore = scorebord[speler.avond_speler_id]?.[rondeNummer - 1] || 0;
