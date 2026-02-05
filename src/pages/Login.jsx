@@ -12,7 +12,8 @@ export default function Login({ onLogin }) {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    passwordConfirm: ''
+    passwordConfirm: '',
+    first_name: '' // Added for player linking
   });
 
   const handleChange = (e) => {
@@ -71,6 +72,7 @@ export default function Login({ onLogin }) {
         password: formData.password,
         options: {
           data: {
+            first_name: formData.first_name,
             role: 'display' // Default role for new users
           }
         }
@@ -78,8 +80,8 @@ export default function Login({ onLogin }) {
 
       if (authError) throw authError;
 
-      setSuccess('Registratie gelukt! Check je email om te bevestigen.');
-      setFormData({ email: '', password: '', passwordConfirm: '' });
+      setSuccess('Registratie gelukt! De admin zal je account beoordelen en koppelen aan je spelersnaam.');
+      setFormData({ email: '', password: '', passwordConfirm: '', first_name: '' });
       setTimeout(() => {
         setIsRegistering(false);
         setSuccess('');
@@ -125,6 +127,22 @@ export default function Login({ onLogin }) {
             />
           </div>
 
+          {isRegistering && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Voornaam</label>
+              <input
+                type="text"
+                name="first_name"
+                value={formData.first_name}
+                onChange={handleChange}
+                placeholder="Je echte voornaam"
+                required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              />
+              <p className="mt-1 text-xs text-gray-500 italic">* Gebruik je voornaam zoals die in de spelerslijst moet komen.</p>
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Wachtwoord</label>
             <input
@@ -168,7 +186,7 @@ export default function Login({ onLogin }) {
             <button
               onClick={() => {
                 setIsRegistering(!isRegistering);
-                setFormData({ email: '', password: '', passwordConfirm: '' });
+                setFormData({ email: '', password: '', passwordConfirm: '', first_name: '' });
                 setError('');
               }}
               className="text-cyan-600 hover:text-cyan-700 font-semibold"

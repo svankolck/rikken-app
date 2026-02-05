@@ -82,8 +82,34 @@ function Account({ user, onLogout }) {
               {user?.role === 'admin' ? '🔐 Admin' : '👁️ Display'}
             </span>
           </div>
+          {user?.speler_id && (
+            <div className="flex items-center justify-between text-rikken-blue font-bold">
+              <span>Gekoppelde Speler</span>
+              <span>👤 Automatisch gelinkt</span>
+            </div>
+          )}
         </div>
       </div>
+
+      {user?.role === 'admin' && (
+        <div className="card mt-6 border-l-4 border-purple-500">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">Beheer</h2>
+          <div className="grid grid-cols-1 gap-3">
+            <button
+              onClick={() => navigate('/manage-users')}
+              className="btn-primary bg-gradient-to-r from-purple-500 to-indigo-600 border-none flex items-center justify-center gap-2"
+            >
+              👥 Gebruikersbeheer
+            </button>
+            <button
+              onClick={() => navigate('/admin')}
+              className="btn-secondary flex items-center justify-center gap-2"
+            >
+              ⚙️ Systeeminstellingen
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="card mt-6">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">Wachtwoord wijzigen</h2>

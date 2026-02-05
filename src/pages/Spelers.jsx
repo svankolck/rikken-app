@@ -18,7 +18,10 @@ function Spelers({ user, onLogout }) {
     try {
       const { data, error } = await supabase
         .from('spelers')
-        .select('*')
+        .select(`
+          *,
+          profiles(id, approved)
+        `)
         .order('naam');
 
       if (error) throw error;
@@ -170,7 +173,12 @@ function Spelers({ user, onLogout }) {
                   checked={geselecteerd.has(speler.id)}
                   onChange={() => { }}
                 />
-                <span className="text-lg font-medium">{index + 1}. {speler.naam}</span>
+                <span className="text-lg font-medium flex-1">
+                  {index + 1}. {speler.naam}
+                  {speler.profiles && speler.profiles.length > 0 && (
+                    <span className="ml-2 text-xl" title="Gekoppeld account">👤</span>
+                  )}
+                </span>
               </div>
             ))}
           </div>

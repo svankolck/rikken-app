@@ -122,8 +122,8 @@ function Analytics({ user, onLogout }) {
         <button
           onClick={() => setActiveTab('dashboard')}
           className={`flex-shrink-0 px-4 py-3 font-semibold rounded-xl transition-all ${activeTab === 'dashboard'
-              ? 'bg-gradient-main text-white shadow-button'
-              : 'text-gray-600 hover:bg-white/50'
+            ? 'bg-gradient-main text-white shadow-button'
+            : 'text-gray-600 hover:bg-white/50'
             }`}
         >
           🎯 Dashboard
@@ -131,8 +131,8 @@ function Analytics({ user, onLogout }) {
         <button
           onClick={() => setActiveTab('avonden')}
           className={`flex-shrink-0 px-4 py-3 font-semibold rounded-xl transition-all ${activeTab === 'avonden'
-              ? 'bg-gradient-main text-white shadow-button'
-              : 'text-gray-600 hover:bg-white/50'
+            ? 'bg-gradient-main text-white shadow-button'
+            : 'text-gray-600 hover:bg-white/50'
             }`}
         >
           🎲 Avonden
@@ -140,8 +140,8 @@ function Analytics({ user, onLogout }) {
         <button
           onClick={() => setActiveTab('spelers')}
           className={`flex-shrink-0 px-4 py-3 font-semibold rounded-xl transition-all ${activeTab === 'spelers'
-              ? 'bg-gradient-main text-white shadow-button'
-              : 'text-gray-600 hover:bg-white/50'
+            ? 'bg-gradient-main text-white shadow-button'
+            : 'text-gray-600 hover:bg-white/50'
             }`}
         >
           👥 Spelers
@@ -149,8 +149,8 @@ function Analytics({ user, onLogout }) {
         <button
           onClick={() => setActiveTab('jaar')}
           className={`flex-shrink-0 px-4 py-3 font-semibold rounded-xl transition-all ${activeTab === 'jaar'
-              ? 'bg-gradient-main text-white shadow-button'
-              : 'text-gray-600 hover:bg-white/50'
+            ? 'bg-gradient-main text-white shadow-button'
+            : 'text-gray-600 hover:bg-white/50'
             }`}
         >
           📅 Jaar
@@ -162,6 +162,35 @@ function Analytics({ user, onLogout }) {
         {/* Dashboard Tab */}
         {activeTab === 'dashboard' && dashboard && (
           <div className="space-y-6">
+            {/* Personal Welcome for linked players */}
+            {user?.speler_id && spelerStats.find(s => s.speler_id === user.speler_id) && (
+              <div className="card bg-gradient-main text-white p-6 shadow-button animate-fadeIn">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-4xl">👤</div>
+                  <div>
+                    <h2 className="text-xl font-bold">Hoi {spelerStats.find(s => s.speler_id === user.speler_id).naam}! 👋</h2>
+                    <p className="text-white/80 text-sm">Jouw statistieken staan klaar.</p>
+                  </div>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-3 border-t border-white/20 pt-4">
+                  <div>
+                    <p className="text-xs text-white/60 uppercase font-bold">Gemiddeld</p>
+                    <p className="text-2xl font-bold">{Math.round(spelerStats.find(s => s.speler_id === user.speler_id).gemiddelde_punten)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-white/60 uppercase font-bold">Avonden</p>
+                    <p className="text-2xl font-bold">{spelerStats.find(s => s.speler_id === user.speler_id).aantal_avonden}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => navigate(`/speler-detail/${encodeURIComponent(spelerStats.find(s => s.speler_id === user.speler_id).naam)}`)}
+                  className="mt-4 w-full py-2 bg-white/20 hover:bg-white/30 rounded-xl text-sm font-bold transition-all"
+                >
+                  Bekijk volledige details →
+                </button>
+              </div>
+            )}
+
             {/* Quick Stats */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div className="card text-center bg-gradient-to-br from-purple-500 to-purple-600 text-white">
@@ -208,8 +237,8 @@ function Analytics({ user, onLogout }) {
                     <div key={item.maand} className="flex-shrink-0 text-center">
                       <div
                         className={`w-16 h-16 rounded-xl flex items-center justify-center font-bold text-white ${item.aantal_avonden >= 4 ? 'bg-green-600' :
-                            item.aantal_avonden >= 2 ? 'bg-green-400' :
-                              'bg-green-200 text-gray-700'
+                          item.aantal_avonden >= 2 ? 'bg-green-400' :
+                            'bg-green-200 text-gray-700'
                           }`}
                       >
                         {item.aantal_avonden}
@@ -271,8 +300,8 @@ function Analytics({ user, onLogout }) {
                         key={naam}
                         onClick={() => handleLegendClick(naam)}
                         className={`px-3 py-1.5 rounded-full text-sm font-semibold transition-all ${visibleLines[naam]
-                            ? 'shadow-sm'
-                            : 'opacity-50 grayscale'
+                          ? 'shadow-sm'
+                          : 'opacity-50 grayscale'
                           }`}
                         style={{
                           backgroundColor: visibleLines[naam] ? color : '#E5E7EB',
@@ -433,9 +462,9 @@ function Analytics({ user, onLogout }) {
                           <div
                             key={speler.naam}
                             className={`flex justify-between items-center p-4 rounded-xl ${index === 0 ? 'bg-gradient-to-r from-yellow-200 to-yellow-300' :
-                                index === 1 ? 'bg-gradient-to-r from-gray-200 to-gray-300' :
-                                  index === 2 ? 'bg-gradient-to-r from-orange-200 to-orange-300' :
-                                    'bg-gray-50'
+                              index === 1 ? 'bg-gradient-to-r from-gray-200 to-gray-300' :
+                                index === 2 ? 'bg-gradient-to-r from-orange-200 to-orange-300' :
+                                  'bg-gray-50'
                               }`}
                           >
                             <div className="flex items-center gap-3">

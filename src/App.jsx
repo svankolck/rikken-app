@@ -14,6 +14,7 @@ import SpelerDetail from './pages/SpelerDetail';
 import Login from './pages/Login';
 import AdminPanel from './pages/AdminPanel';
 import Account from './pages/Account';
+import ManageUsers from './pages/ManageUsers';
 
 // Protected route component
 function ProtectedRoute({ children, isAuthenticated, user, requiredRole = null }) {
@@ -41,11 +42,20 @@ function App() {
       const { data: { session } } = await supabase.auth.getSession();
 
       if (session?.user) {
+        // Fetch profile data
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role, approved, speler_id')
+          .eq('id', session.user.id)
+          .single();
+
         setIsAuthenticated(true);
         setUser({
           id: session.user.id,
           email: session.user.email,
-          role: session.user.user_metadata?.role || 'admin' // Default to admin for now
+          role: profile?.role || 'display',
+          approved: profile?.approved || false,
+          speler_id: profile?.speler_id
         });
       }
 
@@ -55,13 +65,22 @@ function App() {
     initAuth();
 
     // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
+        // Fetch profile data
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role, approved, speler_id')
+          .eq('id', session.user.id)
+          .single();
+
         setIsAuthenticated(true);
         setUser({
           id: session.user.id,
           email: session.user.email,
-          role: session.user.user_metadata?.role || 'admin'
+          role: profile?.role || 'display',
+          approved: profile?.approved || false,
+          speler_id: profile?.speler_id
         });
       } else {
         setIsAuthenticated(false);
@@ -109,6 +128,11 @@ function App() {
               <Route path="/admin" element={
                 <ProtectedRoute isAuthenticated={isAuthenticated} user={user} requiredRole="admin">
                   <AdminPanel user={user} onLogout={handleLogout} />
+                </ProtectedRoute>
+              } />
+              <Route path="/manage-users" element={
+                <ProtectedRoute isAuthenticated={isAuthenticated} user={user} requiredRole="admin">
+                  <ManageUsers user={user} onLogout={handleLogout} />
                 </ProtectedRoute>
               } />
               <Route path="/account" element={
