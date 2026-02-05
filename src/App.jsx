@@ -38,129 +38,106 @@ function App() {
   // Check for existing Supabase session on mount
   useEffect(() => {
     let mounted = true;
-    const initAuth = async () => {
-      console.log('App: initAuth started');
+    let fetchingId = null; // Track if we're already fetching for this user
+
+    const updateUserState = async (session, event = 'INITIAL') => {
+      if (!mounted) return;
+
+      if (!session?.user) {
+        console.log(`App: No session (${event})`);
+        setIsAuthenticated(false);
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      const userEmail = session.user.email;
+      const isSV = userEmail === 'svankolck@gmail.com';
+
+      // OPTIMISTIC UPDATE: If it's the admin, set state immediately
+      if (isSV) {
+        console.log(`App: Optimistic Admin detected (${event})`);
+        setIsAuthenticated(true);
+        setUser({
+          id: session.user.id,
+          email: userEmail,
+          role: 'admin',
+          approved: true,
+          speler_id: null // Will be updated if profile loads, but admin works without it
+        });
+        // We still fetch profile in background to get speler_id, but we stop loading NOW
+        setLoading(false);
+      }
+
+      // Avoid redundant fetches for the same user ID in a short window
+      if (fetchingId === session.user.id) {
+        console.log(`App: Already fetching for ${session.user.id}, skipping redundant call`);
+        return;
+      }
+      fetchingId = session.user.id;
+
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) throw error;
+        console.log(`App: Fetching profile for ${userEmail} (${event})`);
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role, approved, speler_id')
+          .eq('id', session.user.id)
+          .maybeSingle();
 
-        if (session?.user && mounted) {
-          console.log('App: Session found, fetching profile (with 3s timeout)');
+        if (profileError) throw profileError;
 
-          // Profile fetch with timeout to prevent hanging
-          const profilePromise = supabase
-            .from('profiles')
-            .select('role, approved, speler_id')
-            .eq('id', session.user.id)
-            .maybeSingle();
-
-          const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Profile fetch timeout')), 3000)
-          );
-
-          try {
-            const { data: profile, error: profileError } = await Promise.race([profilePromise, timeoutPromise]);
-            if (profileError) throw profileError;
-
-            console.log('App: Profile loaded successfully');
-            const isSV = session.user.email === 'svankolck@gmail.com';
-            setIsAuthenticated(true);
-            setUser({
-              id: session.user.id,
-              email: session.user.email,
-              role: isSV ? 'admin' : (profile?.role || 'display'),
-              approved: isSV ? true : (profile?.approved || false),
-              speler_id: profile?.speler_id
-            });
-          } catch (pErr) {
-            console.warn('App: Profile fetch failed or timed out, using defaults:', pErr);
-            const isSV = session.user.email === 'svankolck@gmail.com';
-            setIsAuthenticated(true);
-            setUser({
-              id: session.user.id,
-              email: session.user.email,
-              role: isSV ? 'admin' : 'display',
-              approved: isSV ? true : false,
-              speler_id: null
-            });
-          }
-        } else {
-          console.log('App: No user session in initAuth');
+        if (mounted) {
+          setIsAuthenticated(true);
+          setUser({
+            id: session.user.id,
+            email: userEmail,
+            role: isSV ? 'admin' : (profile?.role || 'display'),
+            approved: isSV ? true : (profile?.approved || false),
+            speler_id: profile?.speler_id
+          });
+          console.log(`App: User state fully initialized (${event})`);
         }
       } catch (err) {
-        console.error('App: Auth init root error:', err);
-      } finally {
-        if (mounted) {
-          console.log('App: initAuth finished, stopping loading');
-          setLoading(false);
+        console.warn(`App: Profile fetch issue (${event}), using defaults:`, err.message);
+        // If profile fetch fails, we still have the session, so keep isAuthenticated
+        if (mounted && !isSV) {
+          setIsAuthenticated(true);
+          setUser({
+            id: session.user.id,
+            email: userEmail,
+            role: 'display',
+            approved: false,
+            speler_id: null
+          });
         }
+      } finally {
+        if (mounted) setLoading(false);
+        fetchingId = null;
       }
     };
 
-    // Safety timeout: Always stop loading after 5 seconds no matter what
+    // 1. Initial Session Check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) updateUserState(session, 'GET_SESSION');
+      else {
+        // If no session from getSession, onAuthStateChange will still fire with INITIAL_SESSION
+        // but we can proactively stop loading if we're sure
+      }
+    });
+
+    // 2. Auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('App: Auth event:', event);
+      updateUserState(session, event);
+    });
+
+    // Safety timeout: Always stop loading after 4 seconds no matter what
     const safetyTimeout = setTimeout(() => {
       if (mounted && loading) {
-        console.warn('App: Safety timeout reached, forcing loading to false');
+        console.warn('App: Safety timeout reached');
         setLoading(false);
       }
-    }, 5000);
-
-    initAuth();
-
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('App: Auth state change:', event);
-      if (!mounted) return;
-
-      if (session?.user) {
-        try {
-          console.log('App: Fetching profile on state change (with 3s timeout)');
-
-          const profilePromise = supabase
-            .from('profiles')
-            .select('role, approved, speler_id')
-            .eq('id', session.user.id)
-            .maybeSingle();
-
-          const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Profile fetch timeout')), 3000)
-          );
-
-          try {
-            const { data: profile, error: profileError } = await Promise.race([profilePromise, timeoutPromise]);
-            if (profileError) throw profileError;
-
-            const isSV = session.user.email === 'svankolck@gmail.com';
-            setIsAuthenticated(true);
-            setUser({
-              id: session.user.id,
-              email: session.user.email,
-              role: isSV ? 'admin' : (profile?.role || 'display'),
-              approved: isSV ? true : (profile?.approved || false),
-              speler_id: profile?.speler_id
-            });
-          } catch (pErr) {
-            console.warn('App: Profile fetch on state change failed/timed out:', pErr);
-            const isSV = session.user.email === 'svankolck@gmail.com';
-            setIsAuthenticated(true);
-            setUser({
-              id: session.user.id,
-              email: session.user.email,
-              role: isSV ? 'admin' : 'display',
-              approved: isSV ? true : false,
-              speler_id: null
-            });
-          }
-        } catch (err) {
-          console.error('App: Auth state change profile fetch error:', err);
-        }
-      } else {
-        setIsAuthenticated(false);
-        setUser(null);
-      }
-
-      setLoading(false);
-    });
+    }, 4000);
 
     return () => {
       mounted = false;
