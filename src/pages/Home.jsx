@@ -47,9 +47,15 @@ function Home({ user, onLogout }) {
         <div style={{ width: '40px', flexShrink: 0 }}></div>
 
         <h1 className="text-2xl font-bold flex items-center justify-center gap-3 flex-1">
-          <span className="text-2xl">{"\u2660\uFE0E\u2665\uFE0E"}</span>
+          <span className="flex gap-1">
+            <span style={{ color: 'white' }}>{"\u2660\uFE0E"}</span>
+            <span style={{ color: '#ff4b4b' }}>{"\u2665\uFE0E"}</span>
+          </span>
           <span>Rikken</span>
-          <span className="text-2xl">{"\u2666\uFE0E\u2663\uFE0E"}</span>
+          <span className="flex gap-1">
+            <span style={{ color: '#ff4b4b' }}>{"\u2666\uFE0E"}</span>
+            <span style={{ color: 'white' }}>{"\u2663\uFE0E"}</span>
+          </span>
         </h1>
 
         {/* User menu - SIMPEL */}
