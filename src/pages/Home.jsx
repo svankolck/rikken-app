@@ -47,9 +47,9 @@ function Home({ user, onLogout }) {
         <div style={{ width: '40px', flexShrink: 0 }}></div>
 
         <h1 className="text-2xl font-bold flex items-center justify-center gap-3 flex-1">
-          <span className="text-2xl">♠♥</span>
+          <span className="text-2xl">{"\u2660\uFE0E\u2665\uFE0E"}</span>
           <span>Rikken</span>
-          <span className="text-2xl">♦♣</span>
+          <span className="text-2xl">{"\u2666\uFE0E\u2663\uFE0E"}</span>
         </h1>
 
         {/* User menu - SIMPEL */}

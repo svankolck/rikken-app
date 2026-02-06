@@ -6,6 +6,10 @@
   body {
     @apply bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50 text-gray-800;
     min-height: 100vh;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
@@ -14,6 +18,10 @@
   /* Modern gradient button */
   .btn-primary {
     @apply bg-gradient-main text-white font-semibold py-4 px-8 rounded-2xl shadow-button hover:shadow-soft hover:scale-105 transition-all duration-300 ease-out flex items-center justify-center text-center;
+    word-spacing: normal;
+    letter-spacing: normal;
+    white-space: nowrap;
+    font-family: 'Inter', sans-serif !important;
   }
 
   .btn-secondary {
