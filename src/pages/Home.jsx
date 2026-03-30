@@ -10,15 +10,17 @@ function Home({ user }) {
   useEffect(() => {
     const checkActief = async () => {
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('spelavonden')
           .select('*, locaties(straat)')
           .eq('status', 'actief')
-          .limit(1)
-          .single();
-        if (data) setActiefAvond(data);
-      } catch {
-        // Geen actieve avond
+          .order('id', { ascending: false })
+          .limit(1);
+        if (!error && data && data.length > 0) {
+          setActiefAvond(data[0]);
+        }
+      } catch (err) {
+        console.error('Fout bij checken actieve avond:', err);
       }
     };
 
@@ -135,19 +137,35 @@ function Home({ user }) {
           </div>
 
           {/* Nieuwe Avond / Actieve Avond */}
-          <div
-            onClick={() => actiefAvond ? navigate(`/spelavond/${actiefAvond.id}`) : navigate('/nieuwe-avond')}
-            className="glass-card rounded-xl p-6 flex flex-col items-center justify-center text-center shadow-[0_12px_40px_rgba(57,83,189,0.06)] active:scale-95 transition-all bg-gradient-to-br from-[#3953bd]/5 to-[#72489e]/5 cursor-pointer"
-          >
-            <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-indigo-200">
-              <span className="material-symbols-outlined text-white text-3xl">
-                {actiefAvond ? 'play_circle' : 'add_circle'}
+          {actiefAvond ? (
+            <div
+              onClick={() => navigate(`/spelavond/${actiefAvond.id}`)}
+              className="rounded-xl p-6 flex flex-col items-center justify-center text-center active:scale-95 transition-all cursor-pointer shadow-[0_20px_40px_rgba(57,83,189,0.25)]"
+              style={{ background: 'linear-gradient(135deg, #3953bd, #72489e)' }}
+            >
+              <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center mb-4">
+                <span className="material-symbols-outlined text-white text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                  play_circle
+                </span>
+              </div>
+              <span className="text-sm font-bold text-white">Actieve Avond</span>
+              {actiefAvond.datum && (
+                <span className="text-[10px] text-white/70 mt-1">{formatDatum(actiefAvond.datum)}</span>
+              )}
+            </div>
+          ) : (
+            <div
+              onClick={() => navigate('/nieuwe-avond')}
+              className="glass-card rounded-xl p-6 flex flex-col items-center justify-center text-center shadow-[0_12px_40px_rgba(57,83,189,0.06)] active:scale-95 transition-all bg-gradient-to-br from-[#3953bd]/5 to-[#72489e]/5 cursor-pointer"
+            >
+              <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-indigo-200">
+                <span className="material-symbols-outlined text-white text-3xl">add_circle</span>
+              </div>
+              <span className="text-sm font-bold bg-gradient-to-r from-[#3953bd] to-[#72489e] bg-clip-text text-transparent">
+                Nieuwe Avond
               </span>
             </div>
-            <span className="text-sm font-bold bg-gradient-to-r from-[#3953bd] to-[#72489e] bg-clip-text text-transparent">
-              {actiefAvond ? 'Actieve Avond' : 'Nieuwe Avond'}
-            </span>
-          </div>
+          )}
 
           {/* Analytics */}
           <div
