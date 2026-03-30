@@ -134,16 +134,18 @@ function Home({ user }) {
             <span className="text-sm font-semibold text-on-surface">Punten Instellingen</span>
           </div>
 
-          {/* Nieuwe Avond */}
+          {/* Nieuwe Avond / Actieve Avond */}
           <div
-            onClick={() => navigate('/nieuwe-avond')}
+            onClick={() => actiefAvond ? navigate(`/spelavond/${actiefAvond.id}`) : navigate('/nieuwe-avond')}
             className="glass-card rounded-xl p-6 flex flex-col items-center justify-center text-center shadow-[0_12px_40px_rgba(57,83,189,0.06)] active:scale-95 transition-all bg-gradient-to-br from-[#3953bd]/5 to-[#72489e]/5 cursor-pointer"
           >
             <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-indigo-200">
-              <span className="material-symbols-outlined text-white text-3xl">add_circle</span>
+              <span className="material-symbols-outlined text-white text-3xl">
+                {actiefAvond ? 'play_circle' : 'add_circle'}
+              </span>
             </div>
             <span className="text-sm font-bold bg-gradient-to-r from-[#3953bd] to-[#72489e] bg-clip-text text-transparent">
-              Nieuwe Avond
+              {actiefAvond ? 'Actieve Avond' : 'Nieuwe Avond'}
             </span>
           </div>
 

@@ -133,104 +133,126 @@ function Locaties({ user, onLogout }) {
   };
 
   return (
-    <div className="max-w-md mx-auto p-4 min-h-screen page-container">
-      {/* Modern Header */}
-      <div className="page-header">
-        <button onClick={() => navigate('/')} className="back-button">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+    <div className="min-h-screen pb-32 text-on-surface">
+      {/* TopAppBar */}
+      <header className="top-nav">
+        <button onClick={() => navigate('/')} className="text-indigo-700 active:scale-95 transition-transform">
+          <span className="material-symbols-outlined">arrow_back</span>
         </button>
-        <h1 className="text-2xl font-bold">📍 Locaties</h1>
-      </div>
+        <h1 className="text-xl font-bold bg-gradient-to-r from-[#3953bd] to-[#72489e] bg-clip-text text-transparent">
+          Locaties
+        </h1>
+        <div className="w-6"></div>
+      </header>
 
-      {/* Toevoegen sectie met moderne styling */}
-      <div className="mt-6 flex gap-3">
-        <input
-          type="text"
-          className="input-field flex-1"
-          placeholder="Voeg locatie toe..."
-          value={nieuweStraat}
-          onChange={(e) => setNieuweStraat(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleToevoegen()}
-        />
-        <button onClick={handleToevoegen} className="btn-primary px-6 whitespace-nowrap">
-          + Toevoegen
-        </button>
-      </div>
+      <main className="pt-24 px-6 max-w-[428px] mx-auto">
+        {/* Toevoegen */}
+        {isAdmin && (
+          <div className="glass-card rounded-xl p-1 shadow-[0_12px_40px_rgba(57,83,189,0.06)] flex items-center gap-3 px-4 mb-8">
+            <span className="material-symbols-outlined text-outline">location_on</span>
+            <input
+              className="bg-transparent border-none focus:ring-0 w-full py-3 text-on-surface placeholder:text-outline/60 focus:outline-none"
+              placeholder="Voeg locatie toe..."
+              type="text"
+              value={nieuweStraat}
+              onChange={(e) => setNieuweStraat(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleToevoegen()}
+            />
+            <button
+              onClick={handleToevoegen}
+              className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-white"
+              style={{ background: 'linear-gradient(135deg, #3953bd, #72489e)' }}
+            >
+              <span className="material-symbols-outlined text-base">add</span>
+            </button>
+          </div>
+        )}
 
-      {/* Moderne lijst met locaties */}
-      <div className="mt-6 card min-h-[350px]">
-        {editMode && geselecteerd.size === 1 ? (
-          <div className="p-2">
+        {/* Edit mode input */}
+        {editMode && geselecteerd.size === 1 && (
+          <div className="glass-card rounded-xl p-4 shadow-[0_12px_40px_rgba(57,83,189,0.06)] mb-6">
             <input
               type="text"
-              className="input-field"
+              className="w-full px-4 py-3 rounded-md border border-outline-variant bg-white/60 text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30"
               value={editStraat}
               onChange={(e) => setEditStraat(e.target.value)}
               autoFocus
             />
           </div>
-        ) : (
-          <div className="space-y-2">
-            {locaties.map((locatie, index) => (
+        )}
+
+        {/* Locaties lijst */}
+        <div className="space-y-3 mb-8">
+          {locaties.length === 0 ? (
+            <div className="glass-card rounded-xl p-12 text-center">
+              <span className="material-symbols-outlined text-4xl text-on-surface-variant/40">location_off</span>
+              <p className="text-on-surface-variant mt-4">Geen locaties toegevoegd</p>
+            </div>
+          ) : (
+            locaties.map((locatie, index) => (
               <div
                 key={locatie.id}
-                className={`flex items-center p-4 rounded-xl transition-all cursor-pointer
-                  ${geselecteerd.has(locatie.id)
-                    ? 'bg-gradient-card text-white shadow-button'
-                    : 'bg-gray-50 hover:bg-gray-100'}`}
                 onClick={() => handleSelecteer(locatie.id)}
+                className={`glass-card rounded-xl p-4 flex items-center gap-4 shadow-[0_8px_30px_rgba(57,83,189,0.04)] cursor-pointer active:scale-[0.98] transition-all border-l-4 ${
+                  geselecteerd.has(locatie.id) ? 'border-primary' : 'border-transparent'
+                }`}
               >
-                <input
-                  type="checkbox"
-                  className="w-5 h-5 mr-4 cursor-pointer accent-rikken-accent"
-                  checked={geselecteerd.has(locatie.id)}
-                  onChange={() => { }}
-                />
-                <span className="text-lg font-medium">{index + 1}. {locatie.straat}</span>
+                <div
+                  className="w-10 h-10 rounded-md flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
+                  style={geselecteerd.has(locatie.id)
+                    ? { background: 'linear-gradient(135deg, #3953bd, #72489e)' }
+                    : { background: '#e0e9ef', color: '#444653' }
+                  }
+                >
+                  {index + 1}
+                </div>
+                <span className="font-semibold text-on-surface flex-1">{locatie.straat}</span>
+                {geselecteerd.has(locatie.id) && (
+                  <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                )}
               </div>
-            ))}
-          </div>
-        )}
-        {locaties.length === 0 && !editMode && (
-          <div className="text-center py-16">
-            <p className="text-gray-400 text-lg">Geen locaties toegevoegd</p>
-            <p className="text-gray-300 text-sm mt-2">Voeg je eerste locatie toe! 👆</p>
-          </div>
-        )}
-      </div>
+            ))
+          )}
+        </div>
 
-      {/* Moderne actie knoppen */}
-      <div className="mt-6 flex gap-3 justify-center">
-        {editMode ? (
-          <>
-            <button onClick={() => setEditMode(false)} className="btn-secondary flex-1">
-              Annuleer
-            </button>
-            <button onClick={handleSave} className="btn-primary flex-1">
-              ✓ Opslaan
-            </button>
-          </>
-        ) : (
-          <>
-            <button
-              onClick={handleEdit}
-              className={`btn-primary flex-1 ${geselecteerd.size !== 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
-              disabled={geselecteerd.size !== 1}
-            >
-              ✏️ Edit
-            </button>
-            <button
-              onClick={handleWis}
-              className={`btn-danger flex-1 ${geselecteerd.size === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
-              disabled={geselecteerd.size === 0}
-            >
-              🗑️ Wis
-            </button>
-          </>
+        {/* Actie knoppen */}
+        {isAdmin && (
+          <div className="flex gap-4">
+            {editMode ? (
+              <>
+                <button onClick={() => setEditMode(false)} className="btn-secondary flex-1">
+                  <span className="material-symbols-outlined">close</span>
+                  Annuleer
+                </button>
+                <button onClick={handleSave} className="btn-primary flex-1">
+                  <span className="material-symbols-outlined">check</span>
+                  Opslaan
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={handleEdit}
+                  disabled={geselecteerd.size !== 1}
+                  className={`btn-secondary flex-1 ${geselecteerd.size !== 1 ? 'opacity-40 cursor-not-allowed' : ''}`}
+                >
+                  <span className="material-symbols-outlined">edit</span>
+                  Bewerken
+                </button>
+                <button
+                  onClick={handleWis}
+                  disabled={geselecteerd.size === 0}
+                  className={`flex-1 text-white font-bold py-4 rounded-md flex items-center justify-center gap-3 transition-all ${geselecteerd.size === 0 ? 'opacity-40 cursor-not-allowed' : 'active:scale-[0.98]'}`}
+                  style={{ background: '#ba1a1a' }}
+                >
+                  <span className="material-symbols-outlined">delete</span>
+                  Verwijderen
+                </button>
+              </>
+            )}
+          </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }

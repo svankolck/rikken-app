@@ -114,54 +114,52 @@ function SpelSettings() {
   const speciaal = settings.filter(s => !s.naam?.includes('Rik') && !s.naam?.includes('alleen'));
 
   return (
-    <div className="max-w-md mx-auto p-4 min-h-screen pb-24 page-container">
-      {/* Modern Header */}
-      <div className="page-header">
-        <button onClick={() => navigate('/')} className="back-button">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+    <div className="min-h-screen pb-32 text-on-surface">
+      {/* TopAppBar */}
+      <header className="top-nav">
+        <button onClick={() => navigate('/')} className="text-indigo-700 active:scale-95 transition-transform">
+          <span className="material-symbols-outlined">arrow_back</span>
         </button>
-        <h1 className="text-2xl font-bold">⚙️ Spel Settings</h1>
-      </div>
+        <h1 className="text-xl font-bold bg-gradient-to-r from-[#3953bd] to-[#72489e] bg-clip-text text-transparent">
+          Spel Instellingen
+        </h1>
+        <div className="w-6"></div>
+      </header>
 
-      <div className="mt-3 space-y-6">
+      <main className="pt-24 px-6 max-w-[428px] mx-auto">
+      <div className="space-y-6">
         {/* Warning banner als er een actieve avond is */}
         {hasActiefAvond && (
-          <div className="card bg-gradient-to-r from-red-400 to-orange-400 text-white border-none">
-            <p className="text-sm font-semibold text-center flex items-center justify-center gap-2">
-              <span className="text-xl">🔒</span>
-              Er is een actieve spelavond - Settings zijn read-only
-            </p>
+          <div className="rounded-xl p-4 flex items-center gap-3 text-white" style={{ background: 'linear-gradient(135deg, #ba1a1a, #ef4444)' }}>
+            <span className="material-symbols-outlined flex-shrink-0">lock</span>
+            <p className="text-sm font-semibold">Er is een actieve spelavond — instellingen zijn read-only</p>
           </div>
         )}
 
-        {/* Modern Info Banner */}
-        <div className="card bg-gradient-soft border-2 border-rikken-accent/30">
-          <p className="text-sm text-gray-600 text-center">
-            ℹ️ {hasActiefAvond ? 'Bekijk de spelvormen en hun instellingen' : 'Pas het minimaal aantal slagen aan per spelvorm'}
+        {/* Info Banner */}
+        <div className="glass-card rounded-xl p-4 flex items-center gap-3 shadow-[0_8px_30px_rgba(57,83,189,0.04)]">
+          <span className="material-symbols-outlined text-primary flex-shrink-0">info</span>
+          <p className="text-sm text-on-surface-variant">
+            {hasActiefAvond ? 'Bekijk de spelvormen en hun instellingen' : 'Pas het minimaal aantal slagen aan per spelvorm'}
           </p>
         </div>
 
-        {/* Legenda voor rode checkbox */}
-        <div className="card bg-red-50 border border-red-200">
-          <p className="text-sm text-gray-700 flex items-center gap-2">
-            <span className="text-red-500 text-lg">🔴</span>
-            <span><strong>Verdubbelaar terug:</strong> Als dit spel gewonnen wordt, krijgt de speler een verdubbelaar terug.</span>
-          </p>
+        {/* Legenda */}
+        <div className="glass-card rounded-xl p-4 flex items-center gap-3 shadow-[0_8px_30px_rgba(57,83,189,0.04)] border border-error/20">
+          <div className="w-3 h-3 rounded-full bg-error flex-shrink-0"></div>
+          <p className="text-sm text-on-surface"><strong>Verdubbelaar terug:</strong> Als dit spel gewonnen wordt, krijgt de speler een verdubbelaar terug.</p>
         </div>
 
         {/* Met maat spelvormen */}
-        <div className="card">
-          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <span>🤝</span> Met Maat Spelvormen
+        <div className="glass-card rounded-xl p-6 shadow-[0_12px_40px_rgba(57,83,189,0.06)]">
+          <h3 className="text-sm font-bold uppercase tracking-widest text-on-surface-variant mb-4 flex items-center gap-2">
+            <span className="material-symbols-outlined text-base text-primary">handshake</span>
+            Met Maat Spelvormen
           </h3>
           <div className="space-y-2">
             {metMaat.map(spel => (
-              <div key={spel.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-xl">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-800">{spel.naam}</span>
-                </div>
+              <div key={spel.id} className="flex items-center justify-between p-3 bg-surface-container rounded-md">
+                <span className="text-sm font-semibold text-on-surface">{spel.naam}</span>
                 <div className="flex items-center gap-3">
                   <label className="flex items-center gap-1 cursor-pointer" title="Geeft verdubbelaar terug bij winst">
                     <input
@@ -169,14 +167,14 @@ function SpelSettings() {
                       checked={getVerdubbelaar(spel)}
                       onChange={(e) => handleVerdubbelaarChange(spel.id, e.target.checked)}
                       disabled={hasActiefAvond}
-                      className="w-4 h-4 text-red-500 rounded focus:ring-red-400 accent-red-500"
+                      className="w-4 h-4 accent-red-500 rounded"
                     />
-                    <span className="text-xs text-red-500">🔴</span>
+                    <div className="w-2 h-2 rounded-full bg-error"></div>
                   </label>
                   <div className="flex items-center gap-1">
-                    <span className="text-xs text-gray-600">Min:</span>
+                    <span className="text-xs text-on-surface-variant">Min:</span>
                     {hasActiefAvond ? (
-                      <span className="bg-white px-2 py-1 rounded-lg font-bold text-xs text-rikken-blue border border-gray-200">
+                      <span className="bg-white px-2 py-1 rounded-md font-bold text-xs text-primary border border-outline-variant">
                         {getMinSlagen(spel)}
                       </span>
                     ) : (
@@ -186,7 +184,7 @@ function SpelSettings() {
                         max="13"
                         value={getMinSlagen(spel)}
                         onChange={(e) => handleMinSlagenChange(spel.id, e.target.value)}
-                        className="w-12 px-2 py-1 text-xs rounded-lg font-bold text-rikken-blue border border-rikken-accent/50 focus:border-rikken-accent focus:outline-none text-center"
+                        className="w-12 px-2 py-1 text-xs rounded-md font-bold text-primary border border-outline-variant focus:border-primary focus:outline-none text-center bg-white"
                       />
                     )}
                   </div>
@@ -197,75 +195,54 @@ function SpelSettings() {
         </div>
 
         {/* Alleen spelvormen */}
-        <div className="card">
-          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <span>🎯</span> Alleen Spelvormen
+        <div className="glass-card rounded-xl p-6 shadow-[0_12px_40px_rgba(57,83,189,0.06)]">
+          <h3 className="text-sm font-bold uppercase tracking-widest text-on-surface-variant mb-4 flex items-center gap-2">
+            <span className="material-symbols-outlined text-base text-purple-600">person</span>
+            Alleen Spelvormen
           </h3>
           <div className="space-y-2">
             {alleen.map(spel => (
-              <div key={spel.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-xl">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-800">{spel.naam}</span>
-                </div>
+              <div key={spel.id} className="flex items-center justify-between p-3 bg-surface-container rounded-md">
+                <span className="text-sm font-semibold text-on-surface">{spel.naam}</span>
                 <div className="flex items-center gap-3">
-                  <label className="flex items-center gap-1 cursor-pointer" title="Geeft verdubbelaar terug bij winst">
-                    <input
-                      type="checkbox"
-                      checked={getVerdubbelaar(spel)}
-                      onChange={(e) => handleVerdubbelaarChange(spel.id, e.target.checked)}
-                      disabled={hasActiefAvond}
-                      className="w-4 h-4 text-red-500 rounded focus:ring-red-400 accent-red-500"
-                    />
-                    <span className="text-xs text-red-500">🔴</span>
-                  </label>
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs text-gray-600">Min:</span>
-                    {hasActiefAvond ? (
-                      <span className="bg-gradient-main text-white px-2 py-1 rounded-lg font-bold text-xs">
-                        {getMinSlagen(spel)}
-                      </span>
-                    ) : (
-                      <input
-                        type="number"
-                        min="1"
-                        max="13"
-                        value={getMinSlagen(spel)}
-                        onChange={(e) => handleMinSlagenChange(spel.id, e.target.value)}
-                        className="w-12 px-2 py-1 text-xs rounded-lg font-bold text-white bg-gradient-main border border-rikken-accent/50 focus:border-rikken-accent focus:outline-none text-center"
-                      />
-                    )}
-                  </div>
+                  <label className="flex items-center gap-1 cursor-pointer">
+                      <input type="checkbox" checked={getVerdubbelaar(spel)} onChange={(e) => handleVerdubbelaarChange(spel.id, e.target.checked)} disabled={hasActiefAvond} className="w-4 h-4 accent-red-500 rounded"/>
+                      <div className="w-2 h-2 rounded-full bg-error"></div>
+                    </label>
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-on-surface-variant">Min:</span>
+                      {hasActiefAvond ? (
+                        <span className="bg-white px-2 py-1 rounded-md font-bold text-xs text-primary border border-outline-variant">{getMinSlagen(spel)}</span>
+                      ) : (
+                        <input type="number" min="1" max="13" value={getMinSlagen(spel)} onChange={(e) => handleMinSlagenChange(spel.id, e.target.value)} className="w-12 px-2 py-1 text-xs rounded-md font-bold text-primary border border-outline-variant focus:border-primary focus:outline-none text-center bg-white"/>
+                      )}
+                    </div>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Speciale spelvormen - Read only */}
-        <div className="card">
-          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <span>⭐</span> Speciale Spelvormen
+        {/* Speciale spelvormen */}
+        <div className="glass-card rounded-xl p-6 shadow-[0_12px_40px_rgba(57,83,189,0.06)]">
+          <h3 className="text-sm font-bold uppercase tracking-widest text-on-surface-variant mb-1 flex items-center gap-2">
+            <span className="material-symbols-outlined text-base text-orange-500">star</span>
+            Speciale Spelvormen
           </h3>
-          <p className="text-xs text-gray-500 mb-3">Deze spelvormen hebben een vast aantal slagen</p>
+          <p className="text-xs text-on-surface-variant/60 mb-4">Vaste slagen</p>
           <div className="space-y-2">
             {speciaal.map((spel) => {
               const minSlagen = getMinSlagen(spel);
               const displayValue = minSlagen !== null && minSlagen !== undefined ? minSlagen : 0;
               return (
-                <div key={spel.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-xl">
-                  <span className="text-sm font-medium text-gray-800">{spel.naam}</span>
+                <div key={spel.id} className="flex items-center justify-between p-3 bg-surface-container rounded-md">
+                  <span className="text-sm font-semibold text-on-surface">{spel.naam}</span>
                   <div className="flex items-center gap-3">
-                    <label className="flex items-center gap-1 cursor-pointer" title="Geeft verdubbelaar terug bij winst">
-                      <input
-                        type="checkbox"
-                        checked={getVerdubbelaar(spel)}
-                        onChange={(e) => handleVerdubbelaarChange(spel.id, e.target.checked)}
-                        disabled={hasActiefAvond}
-                        className="w-4 h-4 text-red-500 rounded focus:ring-red-400 accent-red-500"
-                      />
-                      <span className="text-xs text-red-500">🔴</span>
+                    <label className="flex items-center gap-1 cursor-pointer">
+                      <input type="checkbox" checked={getVerdubbelaar(spel)} onChange={(e) => handleVerdubbelaarChange(spel.id, e.target.checked)} disabled={hasActiefAvond} className="w-4 h-4 accent-red-500 rounded"/>
+                      <div className="w-2 h-2 rounded-full bg-error"></div>
                     </label>
-                    <span className="bg-gradient-to-r from-purple-400 to-pink-400 text-white px-2 py-1 rounded-lg font-bold text-xs">
+                    <span className="text-white px-2 py-1 rounded-md font-bold text-xs" style={{ background: 'linear-gradient(135deg, #72489e, #3953bd)' }}>
                       {displayValue} {displayValue === 1 ? 'slag' : 'slagen'}
                     </span>
                   </div>
@@ -275,22 +252,18 @@ function SpelSettings() {
           </div>
         </div>
       </div>
+      </main>
 
-      {/* Modern Save knop - alleen zichtbaar als er wijzigingen zijn */}
+      {/* Save knop */}
       {hasChanges() && !hasActiefAvond && (
-        <div className="fixed bottom-6 right-6 flex gap-3">
-          <button
-            onClick={() => setEditedSettings({})}
-            className="btn-secondary shadow-soft"
-          >
-            ✕ Annuleer
+        <div className="fixed bottom-6 left-0 right-0 px-6 max-w-[428px] mx-auto flex gap-3 z-50">
+          <button onClick={() => setEditedSettings({})} className="btn-secondary flex-1">
+            <span className="material-symbols-outlined">close</span>
+            Annuleer
           </button>
-          <button
-            onClick={handleSave}
-            className="btn-primary shadow-soft"
-            disabled={isSaving}
-          >
-            {isSaving ? '⏳ Bezig...' : '✓ Opslaan'}
+          <button onClick={handleSave} disabled={isSaving} className="btn-primary flex-1">
+            <span className="material-symbols-outlined">check</span>
+            {isSaving ? 'Bezig...' : 'Opslaan'}
           </button>
         </div>
       )}

@@ -134,8 +134,8 @@ function PuntenSettings({ user, onLogout }) {
   const speciaal = settings.filter(s => !s.naam?.includes('Rik') && !s.naam?.includes('alleen'));
 
   const renderInputRow = (spel) => (
-    <div key={spel.id} className="grid grid-cols-5 items-center gap-2 bg-gray-50 p-3 rounded-xl">
-      <span className="text-sm font-medium text-gray-800">{spel.naam}</span>
+    <div key={spel.id} className="grid grid-cols-5 items-center gap-1 bg-surface-container p-2 rounded-md">
+      <span className="text-xs font-semibold text-on-surface truncate">{spel.naam}</span>
       {canEdit ? (
         <>
           <input
@@ -175,93 +175,88 @@ function PuntenSettings({ user, onLogout }) {
   );
 
   return (
-    <div className="max-w-md mx-auto p-4 min-h-screen pb-24 page-container">
-      <div className="page-header">
-        <button onClick={() => navigate('/')} className="back-button">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+    <div className="min-h-screen pb-32 text-on-surface">
+      {/* TopAppBar */}
+      <header className="top-nav">
+        <button onClick={() => navigate('/')} className="text-indigo-700 active:scale-95 transition-transform">
+          <span className="material-symbols-outlined">arrow_back</span>
         </button>
-        <h1 className="text-2xl font-bold">🎯 Punten Settings</h1>
-      </div>
+        <h1 className="text-xl font-bold bg-gradient-to-r from-[#3953bd] to-[#72489e] bg-clip-text text-transparent">
+          Punten Instellingen
+        </h1>
+        <div className="w-6"></div>
+      </header>
 
-      {hasActiefAvond && (
-        <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-lg text-yellow-700">
-          ⚠️ Er is een actieve spelavond! Punten kunnen nu niet worden gewijzigd.
-        </div>
-      )}
+      <main className="pt-24 px-6 max-w-[428px] mx-auto">
+        {hasActiefAvond && (
+          <div className="rounded-xl p-4 flex items-center gap-3 text-white mb-6" style={{ background: 'linear-gradient(135deg, #ba1a1a, #ef4444)' }}>
+            <span className="material-symbols-outlined flex-shrink-0">lock</span>
+            <p className="text-sm font-semibold">Er is een actieve spelavond — punten zijn read-only</p>
+          </div>
+        )}
 
-      <div className="mt-3 space-y-6">
-        {/* Info Banner */}
-        <div className="card bg-gradient-soft border-2 border-rikken-accent/30">
-          <p className="text-sm text-gray-600 text-center">
-            ℹ️ {hasActiefAvond ? 'Bekijk de puntenwaardes per spelvorm' : 'Pas de puntenwaardes aan per spelvorm'}
-          </p>
-        </div>
+        <div className="space-y-6">
+          {/* Info Banner */}
+          <div className="glass-card rounded-xl p-4 flex items-center gap-3 shadow-[0_8px_30px_rgba(57,83,189,0.04)]">
+            <span className="material-symbols-outlined text-primary flex-shrink-0">info</span>
+            <p className="text-sm text-on-surface-variant">
+              {hasActiefAvond ? 'Bekijk de puntenwaardes per spelvorm' : 'Pas de puntenwaardes aan per spelvorm'}
+            </p>
+          </div>
 
-        {/* Met maat spelvormen */}
-        <div className="card overflow-x-auto">
-          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <span>🤝</span> Met Maat Spelvormen
-          </h3>
-          <div className="min-w-full">
-            <div className="grid grid-cols-5 gap-2 text-center text-xs font-semibold text-gray-600 mb-3 px-2">
-              <div>Naam</div>
-              <div>Gemaakt</div>
-              <div>Overslag</div>
-              <div>Nat</div>
-              <div>Onderslag</div>
-            </div>
+          {/* Kolom header */}
+          <div className="grid grid-cols-5 gap-1 text-center text-[10px] font-bold uppercase tracking-widest text-on-surface-variant px-2">
+            <div className="text-left">Naam</div>
+            <div className="text-green-600">Gem.</div>
+            <div className="text-blue-600">Over.</div>
+            <div className="text-error">Nat</div>
+            <div className="text-orange-500">Onder.</div>
+          </div>
+
+          {/* Met maat spelvormen */}
+          <div className="glass-card rounded-xl p-6 shadow-[0_12px_40px_rgba(57,83,189,0.06)]">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-on-surface-variant mb-4 flex items-center gap-2">
+              <span className="material-symbols-outlined text-base text-primary">handshake</span>
+              Met Maat
+            </h3>
             <div className="space-y-2">
               {metMaat.map(spel => renderInputRow(spel))}
             </div>
           </div>
-        </div>
 
-        {/* Alleen spelvormen */}
-        <div className="card overflow-x-auto">
-          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <span>🎯</span> Alleen Spelvormen
-          </h3>
-          <div className="min-w-full">
-            <div className="grid grid-cols-5 gap-2 text-center text-xs font-semibold text-gray-600 mb-3 px-2">
-              <div>Naam</div>
-              <div>Gemaakt</div>
-              <div>Overslag</div>
-              <div>Nat</div>
-              <div>Onderslag</div>
-            </div>
+          {/* Alleen spelvormen */}
+          <div className="glass-card rounded-xl p-6 shadow-[0_12px_40px_rgba(57,83,189,0.06)]">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-on-surface-variant mb-4 flex items-center gap-2">
+              <span className="material-symbols-outlined text-base text-purple-600">person</span>
+              Alleen
+            </h3>
             <div className="space-y-2">
               {alleen.map(spel => renderInputRow(spel))}
             </div>
           </div>
-        </div>
 
-        {/* Speciale spelvormen */}
-        <div className="card">
-          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <span>⭐</span> Speciale Spelvormen
-          </h3>
-          <div className="space-y-2">
-            {speciaal.map(spel => renderInputRow(spel))}
+          {/* Speciale spelvormen */}
+          <div className="glass-card rounded-xl p-6 shadow-[0_12px_40px_rgba(57,83,189,0.06)]">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-on-surface-variant mb-4 flex items-center gap-2">
+              <span className="material-symbols-outlined text-base text-orange-500">star</span>
+              Speciaal
+            </h3>
+            <div className="space-y-2">
+              {speciaal.map(spel => renderInputRow(spel))}
+            </div>
           </div>
         </div>
-      </div>
+      </main>
 
       {hasChanges() && canEdit && (
-        <div className="fixed bottom-6 right-6 flex gap-3">
-          <button
-            onClick={() => setEditedSettings({})}
-            className="btn-secondary shadow-soft"
-          >
-            ✕ Annuleer
+        <div className="fixed bottom-6 left-0 right-0 px-6 max-w-[428px] mx-auto flex gap-3 z-50">
+          <button onClick={() => setEditedSettings({})} className="btn-secondary flex-1">
+            <span className="material-symbols-outlined">close</span>
+            Annuleer
           </button>
-          <button
-            onClick={handleSave}
-            className="btn-primary shadow-soft"
-            disabled={isSaving}
-          >
-            {isSaving ? '⏳ Bezig...' : '✓ Opslaan'}
+          <button onClick={handleSave} disabled={isSaving} className="btn-primary flex-1">
+            <span className="material-symbols-outlined">check</span>
+            {isSaving ? 'Bezig...' : 'Opslaan'}
           </button>
         </div>
       )}
