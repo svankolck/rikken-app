@@ -2,13 +2,15 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
-function Spelers({ user, onLogout }) {
+function Spelers() {
   const navigate = useNavigate();
   const [spelers, setSpelers] = useState([]);
+  const [zoekterm, setZoekterm] = useState('');
+  const [showToevoegen, setShowToevoegen] = useState(false);
   const [nieuweNaam, setNieuweNaam] = useState('');
-  const [geselecteerd, setGeselecteerd] = useState(new Set());
-  const [editMode, setEditMode] = useState(false);
+  const [editSpeler, setEditSpeler] = useState(null);
   const [editNaam, setEditNaam] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     loadSpelers();
@@ -18,20 +20,11 @@ function Spelers({ user, onLogout }) {
     try {
       const { data, error } = await supabase
         .from('spelers')
-        .select(`
-          *,
-          profiles(id, approved)
-        `)
+        .select('*, profiles(id, approved)')
         .order('naam');
 
       if (error) {
-        console.warn('Kon profiles niet joinen, fallback naar simpele fetch:', error);
-        const { data: simpleData, error: simpleError } = await supabase
-          .from('spelers')
-          .select('*')
-          .order('naam');
-
-        if (simpleError) throw simpleError;
+        const { data: simpleData } = await supabase.from('spelers').select('*').order('naam');
         setSpelers(simpleData || []);
       } else {
         setSpelers(data || []);
@@ -43,257 +36,258 @@ function Spelers({ user, onLogout }) {
 
   const handleToevoegen = async () => {
     if (!nieuweNaam.trim()) return;
-
+    setLoading(true);
     try {
-      const { error } = await supabase
-        .from('spelers')
-        .insert({ naam: nieuweNaam.trim() });
-
-      if (error) {
-        alert(error.message);
-        return;
-      }
-
+      const { error } = await supabase.from('spelers').insert({ naam: nieuweNaam.trim() });
+      if (error) { alert(error.message); return; }
       setNieuweNaam('');
+      setShowToevoegen(false);
       loadSpelers();
     } catch (err) {
-      console.error('Fout bij toevoegen speler:', err);
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleSelecteer = (id) => {
-    const nieuweSelectie = new Set(geselecteerd);
-    if (nieuweSelectie.has(id)) {
-      nieuweSelectie.delete(id);
-    } else {
-      nieuweSelectie.add(id);
-    }
-    setGeselecteerd(nieuweSelectie);
-  };
-
-  const handleWis = async () => {
-    if (geselecteerd.size === 0) return;
-
-    const bevestig = window.confirm(`Weet je zeker dat je ${geselecteerd.size} speler(s) wilt verwijderen?`);
-    if (!bevestig) return;
-
+  const handleVerwijderen = async (speler) => {
+    if (!window.confirm(`Weet je zeker dat je "${speler.naam}" wilt verwijderen?`)) return;
     try {
-      const ids = Array.from(geselecteerd);
-      const { error } = await supabase
-        .from('spelers')
-        .delete()
-        .in('id', ids);
-
+      const { error } = await supabase.from('spelers').delete().eq('id', speler.id);
       if (error) throw error;
-
-      setGeselecteerd(new Set());
       loadSpelers();
     } catch (err) {
-      console.error('Fout bij verwijderen spelers:', err);
+      alert('Fout bij verwijderen: ' + err.message);
     }
   };
 
-  const handleEdit = () => {
-    if (geselecteerd.size !== 1) {
-      alert('Selecteer exact 1 speler om te bewerken');
-      return;
-    }
-    const spelerId = Array.from(geselecteerd)[0];
-    const speler = spelers.find(s => s.id === spelerId);
-    setEditNaam(speler.naam);
-    setEditMode(true);
-  };
-
-  const handleSave = async () => {
-    if (geselecteerd.size !== 1) return;
-
-    const spelerId = Array.from(geselecteerd)[0];
-    const speler = spelers.find(s => s.id === spelerId);
-
-    // Protection: Cannot edit linked player
-    if (speler.profiles && speler.profiles.length > 0) {
-      alert('Gekoppelde spelers kunnen niet worden bewerkt.');
-      return;
-    }
-
+  const handleSaveEdit = async () => {
+    if (!editSpeler || !editNaam.trim()) return;
+    setLoading(true);
     try {
-      const { error } = await supabase
-        .from('spelers')
-        .update({ naam: editNaam.trim() })
-        .eq('id', spelerId);
-
-      if (error) {
-        alert(error.message);
-        return;
-      }
-
-      setEditMode(false);
-      setGeselecteerd(new Set());
+      const { error } = await supabase.from('spelers').update({ naam: editNaam.trim() }).eq('id', editSpeler.id);
+      if (error) throw error;
+      setEditSpeler(null);
+      setEditNaam('');
       loadSpelers();
     } catch (err) {
-      console.error('Fout bij opslaan speler:', err);
+      alert('Fout bij opslaan: ' + err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const isLidSelected = () => {
-    return Array.from(geselecteerd).some(id => {
-      const s = spelers.find(sp => sp.id === id);
-      return s && s.profiles && s.profiles.length > 0;
-    });
-  };
+  const getInitials = (naam) => naam.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+
+  const isLid = (speler) => speler.profiles && speler.profiles.length > 0;
+
+  const gefilterd = spelers.filter(s =>
+    s.naam.toLowerCase().includes(zoekterm.toLowerCase())
+  );
+  const leden = gefilterd.filter(s => isLid(s));
+  const gasten = gefilterd.filter(s => !isLid(s));
 
   return (
-    <div className="max-w-md mx-auto p-4 min-h-screen page-container">
-      {/* Modern Header */}
-      <div className="page-header">
-        <button onClick={() => navigate('/')} className="back-button">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+    <div className="min-h-screen pb-32 text-on-surface">
+      {/* TopAppBar */}
+      <header className="top-nav">
+        <button onClick={() => navigate('/')} className="text-indigo-700 active:scale-95 transition-transform">
+          <span className="material-symbols-outlined">arrow_back</span>
         </button>
-        <h1 className="text-2xl font-bold">👥 Spelers</h1>
-      </div>
-
-      {/* Toevoegen sectie met moderne styling */}
-      <div className="mt-6 flex gap-3">
-        <input
-          type="text"
-          className="input-field flex-1"
-          placeholder="Voeg speler toe..."
-          value={nieuweNaam}
-          onChange={(e) => setNieuweNaam(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleToevoegen()}
-        />
-        <button onClick={handleToevoegen} className="btn-primary px-6 whitespace-nowrap">
-          + Toevoegen
+        <h1 className="text-xl font-bold bg-gradient-to-r from-[#3953bd] to-[#72489e] bg-clip-text text-transparent">
+          Rikken Score
+        </h1>
+        <button className="text-indigo-700">
+          <span className="material-symbols-outlined">check_circle</span>
         </button>
-      </div>
+      </header>
 
-      {/* Moderne lijst met spelers */}
-      <div className="mt-6 card min-h-[350px]">
-        {editMode && geselecteerd.size === 1 ? (
-          <div className="p-2">
+      <main className="pt-24 pb-32 px-6 max-w-[428px] mx-auto">
+        {/* Search Bar */}
+        <div className="mb-10">
+          <div className="glass-card rounded-xl p-1 shadow-[0_12px_40px_rgba(57,83,189,0.06)] flex items-center gap-3 px-4">
+            <span className="material-symbols-outlined text-outline">search</span>
             <input
+              className="bg-transparent border-none focus:ring-0 w-full py-3 text-on-surface placeholder:text-outline/60 focus:outline-none"
+              placeholder="Zoek spelers..."
               type="text"
-              className="input-field"
-              value={editNaam}
-              onChange={(e) => setEditNaam(e.target.value)}
-              autoFocus
+              value={zoekterm}
+              onChange={(e) => setZoekterm(e.target.value)}
             />
           </div>
-        ) : (
-          <div className="space-y-6">
-            {/* Geregistreerde Leden Section */}
-            {spelers.filter(s => s.profiles && s.profiles.length > 0).length > 0 && (
-              <div>
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-2 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 bg-rikken-blue rounded-full"></span>
-                  Geregistreerde Leden
-                </h3>
-                <div className="space-y-2">
-                  {spelers.filter(s => s.profiles && s.profiles.length > 0).map((speler) => (
-                    <div
-                      key={speler.id}
-                      className={`flex items-center p-4 rounded-xl transition-all cursor-pointer
-                        ${geselecteerd.has(speler.id)
-                          ? 'bg-gradient-card text-white shadow-button'
-                          : 'bg-blue-50/50 hover:bg-blue-50 border border-blue-100/50'}`}
-                      onClick={() => handleSelecteer(speler.id)}
-                    >
-                      <input
-                        type="checkbox"
-                        className="w-5 h-5 mr-4 cursor-pointer accent-white"
-                        checked={geselecteerd.has(speler.id)}
-                        readOnly
-                      />
-                      <span className="text-lg font-medium flex-1">
-                        {speler.naam}
-                        <span className="ml-2 text-xl" title="Gekoppeld account">👤</span>
-                      </span>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${geselecteerd.has(speler.id) ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-600'
-                        }`}>
-                        Lid
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+        </div>
 
-            {/* Gasten Section */}
-            <div>
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-2 flex items-center gap-2 mt-4">
-                <span className="w-1.5 h-1.5 bg-gray-300 rounded-full"></span>
-                Gasten
-              </h3>
-              <div className="space-y-2">
-                {spelers.filter(s => !s.profiles || s.profiles.length === 0).map((speler) => (
-                  <div
-                    key={speler.id}
-                    className={`flex items-center p-4 rounded-xl transition-all cursor-pointer
-                      ${geselecteerd.has(speler.id)
-                        ? 'bg-gradient-card text-white shadow-button'
-                        : 'bg-gray-50 hover:bg-gray-100'}`}
-                    onClick={() => handleSelecteer(speler.id)}
-                  >
-                    <input
-                      type="checkbox"
-                      className="w-5 h-5 mr-4 cursor-pointer accent-rikken-accent"
-                      checked={geselecteerd.has(speler.id)}
-                      readOnly
-                    />
-                    <span className="text-lg font-medium flex-1">{speler.naam}</span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${geselecteerd.has(speler.id) ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-500'
-                      }`}>
-                      Gast
-                    </span>
-                  </div>
-                ))}
-                {spelers.filter(s => !s.profiles || s.profiles.length === 0).length === 0 && (
-                  <p className="text-center py-4 text-gray-400 italic text-sm">Geen gasten</p>
-                )}
-              </div>
+        {/* Leden Section */}
+        {leden.length > 0 && (
+          <section className="mb-12">
+            <div className="flex items-center justify-between mb-6 px-2">
+              <h2 className="font-semibold tracking-tight text-on-surface-variant">Leden</h2>
+              <span className="text-xs font-bold text-primary px-3 py-1 bg-primary/10 rounded-full">
+                {leden.length} Totaal
+              </span>
+            </div>
+            <div className="space-y-4">
+              {leden.map((speler) => (
+                <SpelerItem
+                  key={speler.id}
+                  speler={speler}
+                  label="Premium Lid"
+                  labelColor="text-primary"
+                  getInitials={getInitials}
+                  onEdit={() => { setEditSpeler(speler); setEditNaam(speler.naam); }}
+                  onDelete={() => handleVerwijderen(speler)}
+                  isProtected={true}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Gasten Section */}
+        <section className="mb-12">
+          <div className="flex items-center justify-between mb-6 px-2">
+            <h2 className="font-semibold tracking-tight text-on-surface-variant">Gasten</h2>
+            {gasten.length > 0 && (
+              <span className="text-xs font-bold text-on-surface-variant px-3 py-1 bg-surface-container rounded-full">
+                {gasten.length}
+              </span>
+            )}
+          </div>
+          {gasten.length === 0 && (
+            <p className="text-center text-on-surface-variant/60 text-sm italic py-6">Geen gasten gevonden</p>
+          )}
+          <div className="space-y-4">
+            {gasten.map((speler) => (
+              <SpelerItem
+                key={speler.id}
+                speler={speler}
+                label="Tijdelijk"
+                labelColor="text-on-surface-variant"
+                getInitials={getInitials}
+                onEdit={() => { setEditSpeler(speler); setEditNaam(speler.naam); }}
+                onDelete={() => handleVerwijderen(speler)}
+                isProtected={false}
+              />
+            ))}
+          </div>
+        </section>
+      </main>
+
+      {/* FAB */}
+      <button
+        onClick={() => setShowToevoegen(true)}
+        className="fixed bottom-28 right-6 w-16 h-16 rounded-xl text-white shadow-[0_20px_40px_rgba(57,83,189,0.3)] flex items-center justify-center active:scale-90 transition-all duration-200 z-50"
+        style={{ background: 'linear-gradient(135deg, #3953bd, #72489e)' }}
+      >
+        <span className="material-symbols-outlined text-3xl">add</span>
+      </button>
+
+      {/* BottomNavBar */}
+      <nav className="bottom-nav">
+        <div className="nav-item cursor-pointer" onClick={() => navigate('/')}>
+          <span className="material-symbols-outlined mb-1">leaderboard</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest">Scoreboard</span>
+        </div>
+        <div className="nav-item-active">
+          <span className="material-symbols-outlined mb-1" style={{ fontVariationSettings: "'FILL' 1" }}>settings</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest">Settings</span>
+        </div>
+        <div className="nav-item cursor-pointer" onClick={() => navigate('/analytics')}>
+          <span className="material-symbols-outlined mb-1">history</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest">History</span>
+        </div>
+      </nav>
+
+      {/* Modal: Toevoegen */}
+      {showToevoegen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }}>
+          <div className="glass-card-strong w-full max-w-[428px] rounded-t-2xl p-8">
+            <h3 className="font-bold text-xl text-on-surface mb-6">Speler toevoegen</h3>
+            <input
+              autoFocus
+              type="text"
+              className="w-full px-4 py-3 rounded-md border border-outline-variant bg-white/60 text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30 mb-6"
+              placeholder="Naam van speler..."
+              value={nieuweNaam}
+              onChange={(e) => setNieuweNaam(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleToevoegen()}
+            />
+            <div className="flex gap-4">
+              <button onClick={() => setShowToevoegen(false)} className="btn-secondary flex-1">
+                Annuleer
+              </button>
+              <button onClick={handleToevoegen} disabled={loading || !nieuweNaam.trim()} className="btn-primary flex-1">
+                {loading ? 'Toevoegen...' : 'Toevoegen'}
+              </button>
             </div>
           </div>
-        )}
-        {spelers.length === 0 && !editMode && (
-          <div className="text-center py-16">
-            <p className="text-gray-400 text-lg">Geen spelers toegevoegd</p>
-            <p className="text-gray-300 text-sm mt-2">Voeg je eerste speler toe! 👆</p>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Moderne actie knoppen */}
-      <div className="mt-6 flex gap-3 justify-center">
-        {editMode ? (
-          <>
-            <button onClick={() => setEditMode(false)} className="btn-secondary flex-1">
-              Annuleer
-            </button>
-            <button onClick={handleSave} className="btn-primary flex-1">
-              ✓ Opslaan
-            </button>
-          </>
-        ) : (
-          <>
-            <button
-              onClick={handleEdit}
-              className={`btn-primary flex-1 ${geselecteerd.size !== 1 || isLidSelected() ? 'opacity-50 cursor-not-allowed' : ''}`}
-              disabled={geselecteerd.size !== 1 || isLidSelected()}
-              title={isLidSelected() ? "Gekoppelde spelers kunnen niet bewerkt worden" : ""}
-            >
-              ✏️ Edit
-            </button>
-            <button
-              onClick={handleWis}
-              className={`btn-danger flex-1 ${geselecteerd.size === 0 || isLidSelected() ? 'opacity-50 cursor-not-allowed' : ''}`}
-              disabled={geselecteerd.size === 0 || isLidSelected()}
-              title={isLidSelected() ? "Gekoppelde spelers kunnen niet verwijderd worden" : ""}
-            >
-              🗑️ Wis
-            </button>
-          </>
+      {/* Modal: Edit */}
+      {editSpeler && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }}>
+          <div className="glass-card-strong w-full max-w-[428px] rounded-t-2xl p-8">
+            <h3 className="font-bold text-xl text-on-surface mb-6">Naam bewerken</h3>
+            <input
+              autoFocus
+              type="text"
+              className="w-full px-4 py-3 rounded-md border border-outline-variant bg-white/60 text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30 mb-6"
+              value={editNaam}
+              onChange={(e) => setEditNaam(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit()}
+            />
+            <div className="flex gap-4">
+              <button onClick={() => setEditSpeler(null)} className="btn-secondary flex-1">
+                Annuleer
+              </button>
+              <button onClick={handleSaveEdit} disabled={loading || !editNaam.trim()} className="btn-primary flex-1">
+                {loading ? 'Opslaan...' : 'Opslaan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SpelerItem({ speler, label, labelColor, getInitials, onEdit, onDelete, isProtected }) {
+  return (
+    <div className="glass-card rounded-xl p-4 flex items-center justify-between shadow-[0_12px_40px_rgba(57,83,189,0.06)] border border-white/20 active:scale-[0.98] transition-all duration-200">
+      <div className="flex items-center gap-4">
+        <div
+          className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg"
+          style={isProtected
+            ? { background: 'linear-gradient(135deg, #3953bd, #72489e)' }
+            : { background: '#e0e9ef', color: '#444653' }
+          }
+        >
+          {getInitials(speler.naam)}
+        </div>
+        <div>
+          <p className="font-semibold text-on-surface">{speler.naam}</p>
+          <p className={`text-xs font-medium uppercase tracking-wider ${labelColor} ${!isProtected ? 'italic' : ''}`}>
+            {label}
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        {!isProtected && (
+          <button
+            onClick={onEdit}
+            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors text-on-surface-variant"
+          >
+            <span className="material-symbols-outlined text-[20px]">edit</span>
+          </button>
+        )}
+        {!isProtected && (
+          <button
+            onClick={onDelete}
+            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-error-container/20 transition-colors text-error"
+          >
+            <span className="material-symbols-outlined text-[20px]">delete</span>
+          </button>
         )}
       </div>
     </div>

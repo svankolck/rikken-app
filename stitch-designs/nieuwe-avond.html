@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+
+<html class="light" lang="nl"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-secondary-fixed-variant": "#2f3aa3",
+              "on-surface": "#141d21",
+              "surface-container-high": "#e0e9ef",
+              "on-tertiary": "#ffffff",
+              "tertiary-fixed-dim": "#dcb8ff",
+              "surface-tint": "#3c55bf",
+              "on-error": "#ffffff",
+              "on-primary-fixed": "#001356",
+              "secondary-container": "#8792fe",
+              "primary-container": "#546cd7",
+              "on-tertiary-fixed-variant": "#5c3187",
+              "surface-dim": "#d2dbe1",
+              "error": "#ba1a1a",
+              "on-surface-variant": "#444653",
+              "on-secondary": "#ffffff",
+              "surface-container-lowest": "#ffffff",
+              "secondary-fixed": "#e0e0ff",
+              "outline": "#757684",
+              "surface-container": "#e6eff5",
+              "surface": "#f4faff",
+              "surface-variant": "#dbe4ea",
+              "inverse-on-surface": "#e9f2f8",
+              "on-tertiary-fixed": "#2c0051",
+              "error-container": "#ffdad6",
+              "on-secondary-container": "#17228f",
+              "primary-fixed": "#dde1ff",
+              "background": "#f4faff",
+              "on-error-container": "#93000a",
+              "tertiary-container": "#8c61b9",
+              "on-primary-container": "#fffbff",
+              "outline-variant": "#c5c5d5",
+              "primary-fixed-dim": "#b9c3ff",
+              "on-primary": "#ffffff",
+              "surface-container-low": "#ecf5fb",
+              "on-primary-fixed-variant": "#1f3ba6",
+              "secondary-fixed-dim": "#bdc2ff",
+              "tertiary": "#72489e",
+              "primary": "#3953bd",
+              "inverse-surface": "#293236",
+              "tertiary-fixed": "#f0dbff",
+              "on-tertiary-container": "#fffbff",
+              "on-secondary-fixed": "#000767",
+              "surface-bright": "#f4faff",
+              "on-background": "#141d21",
+              "inverse-primary": "#b9c3ff",
+              "secondary": "#4953bc",
+              "surface-container-highest": "#dbe4ea"
+            },
+            fontFamily: {
+              "headline": ["Inter"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f0f9ff 0%, #ecfeff 50%, #f0fdfa 100%);
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-on-surface antialiased overflow-x-hidden pb-32">
+<!-- Top Navigation Anchor (Manual for this specific task) -->
+<header class="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-xl flex items-center justify-between px-6 py-4 shadow-[0_12px_40px_rgba(57,83,189,0.06)]">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-indigo-700" data-icon="arrow_back">arrow_back</span>
+<h1 class="font-sans font-semibold text-lg tracking-tight text-on-surface">Nieuwe Avond</h1>
+</div>
+<div class="text-xl font-bold bg-gradient-to-r from-[#3953bd] to-[#72489e] bg-clip-text text-transparent">
+            Rikken Score
+        </div>
+</header>
+<main class="pt-24 px-6 space-y-8 max-w-[428px] mx-auto">
+<!-- Hero Date Picker Section -->
+<section class="space-y-4">
+<div class="glass-card rounded-xl p-6 shadow-[0_12px_40px_rgba(57,83,189,0.06)] flex flex-col items-center justify-center text-center">
+<span class="label-md font-bold text-primary uppercase tracking-widest mb-1">Datum van de avond</span>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-tertiary text-3xl" data-icon="calendar_today">calendar_today</span>
+<span class="text-3xl font-bold tracking-tight">Vrijdag 24 Mei</span>
+</div>
+<div class="mt-4 px-4 py-2 bg-surface-container-low rounded-md text-sm font-medium text-on-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-lg" data-icon="edit">edit</span>
+                    Wijzig datum
+                </div>
+</div>
+</section>
+<!-- Selected Players Chips -->
+<section class="space-y-3">
+<div class="flex items-center justify-between px-1">
+<h2 class="text-on-surface font-semibold">Geselecteerde Spelers</h2>
+<span class="text-sm font-bold text-primary bg-primary-fixed px-3 py-1 rounded-full">4 / 6</span>
+</div>
+<div class="flex flex-wrap gap-3">
+<div class="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-[#3953bd] to-[#72489e] text-white rounded-md shadow-lg active:scale-95 transition-transform">
+<span class="text-sm font-semibold">Anouk</span>
+<span class="material-symbols-outlined text-xs" data-icon="close">close</span>
+</div>
+<div class="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-[#3953bd] to-[#72489e] text-white rounded-md shadow-lg active:scale-95 transition-transform">
+<span class="text-sm font-semibold">Bram</span>
+<span class="material-symbols-outlined text-xs" data-icon="close">close</span>
+</div>
+<div class="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-[#3953bd] to-[#72489e] text-white rounded-md shadow-lg active:scale-95 transition-transform">
+<span class="text-sm font-semibold">Chris</span>
+<span class="material-symbols-outlined text-xs" data-icon="close">close</span>
+</div>
+<div class="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-[#3953bd] to-[#72489e] text-white rounded-md shadow-lg active:scale-95 transition-transform">
+<span class="text-sm font-semibold">Daan</span>
+<span class="material-symbols-outlined text-xs" data-icon="close">close</span>
+</div>
+</div>
+</section>
+<!-- Location Selector -->
+<section class="space-y-3">
+<h2 class="text-on-surface font-semibold px-1">Locatie</h2>
+<div class="glass-card rounded-md p-4 flex items-center justify-between shadow-[0_4px_20px_rgba(57,83,189,0.04)]">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary" data-icon="location_on">location_on</span>
+<span class="font-medium">Bij Bram Thuis</span>
+</div>
+<span class="material-symbols-outlined text-outline" data-icon="expand_more">expand_more</span>
+</div>
+</section>
+<!-- Player List -->
+<section class="space-y-4">
+<h2 class="headline-md text-on-surface px-1">Selecteer 4-6 spelers</h2>
+<div class="space-y-3">
+<!-- Sorted Alphabetically list -->
+<div class="glass-card rounded-md p-4 flex items-center justify-between border-l-4 border-primary">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full overflow-hidden bg-surface-container-high border-2 border-primary-fixed shadow-sm">
+<img alt="" class="w-full h-full object-cover" data-alt="portrait of a smiling young woman with dark hair in soft natural lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAp0vf0XJTfPV-zJeuVLxOwHkbHhTxnBsZR3MMRVCb2VsaXTUCxnuaa1ie-4WD9YQSDAGx_1zHpoGTKtNmHlP4bgpjVqSogu9ZbZ_MU6X4UdpSp1ZkxLnL3mvdsdYUzxEzqH9X5WvOug2kEUaVT8ORnwVZEVOtZbJEZSCzsbgINcfh7Q816HHXeof_lxSKovOgbavmCLISkEo22VBi7nyL7rso4rscr6BkzGw6GiaOVlRSd88Ss02VbR1hYBkgoZMEf5isdqLt7pvU"/>
+</div>
+<span class="text-lg font-medium">Anouk</span>
+</div>
+<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-xl" data-icon="check">check</span>
+</div>
+</div>
+<div class="glass-card rounded-md p-4 flex items-center justify-between border-l-4 border-primary">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full overflow-hidden bg-surface-container-high border-2 border-primary-fixed shadow-sm">
+<img alt="" class="w-full h-full object-cover" data-alt="portrait of a young man with a beard and friendly expression in studio lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD9K33TV3IBUnEJwq7oZYXqVx0TOwnF93UwdfwcBwFCXkTIthFpjs6gy7VmMlmd89VIhdvS6X03i1tYWS4mLzIkW7DPXnhs__Pe-5DdV5Lx9dryPObfJuMPcuhsLBoTuYKVydKhftUbOWyO9iXxGDPoKJreq6xphOaiys2O1AZnFKGaayMLGhe0czhLsT_3cNAeqNMlu6kwGCFWJYCwmH96DZeVO78IIQQIRrzVF2zDGDP2gHSbZmcRB3pqsIbnvOH6AUXeXwmnoak"/>
+</div>
+<span class="text-lg font-medium">Bram</span>
+</div>
+<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-xl" data-icon="check">check</span>
+</div>
+</div>
+<div class="glass-card rounded-md p-4 flex items-center justify-between border-l-4 border-primary">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full overflow-hidden bg-surface-container-high border-2 border-primary-fixed shadow-sm">
+<img alt="" class="w-full h-full object-cover" data-alt="close up headshot of a man smiling warmly with neutral background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBOwDOBXDM4TudwYsaKeKcsY_0OxPbxXV7TGsPEvI3BhJWTtOTELAV45hm3j3gdUQht0wJzW2htArZAvBSLSyz1xJwM4YSxWDSCXD4iLb9eltS0BaWJaOxTHXYPlWvYg0oeCM2BZFa2__-UjCPg7OZDuwhgJ8B1LRSnEf1-IzjiG-_RSm2P7-65bBpBNQzb4mtEe02smsdBr4KwMZFwMTp5pGS0t9bvURPag1euiTTyJHmbaBGE873HgkJIiflcSAqiOlJ42bP4YcQ"/>
+</div>
+<span class="text-lg font-medium">Chris</span>
+</div>
+<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-xl" data-icon="check">check</span>
+</div>
+</div>
+<div class="glass-card rounded-md p-4 flex items-center justify-between border-l-4 border-primary">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full overflow-hidden bg-surface-container-high border-2 border-primary-fixed shadow-sm">
+<img alt="" class="w-full h-full object-cover" data-alt="young stylish man looking at camera outdoors with urban bokeh background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDrU_MnvaYwx1BYKFDiPyBJO-vkYvecCszi_7DjWX15FLX_uJ-WnCiW-ZeTg0fOfPq8Ixtkj0ScgYe_bkiQ2ItAH-rJxE4sbhCKwZxZV0wereaA21q8ULHARGwlqrbTp_7nL3_byZadqysQr2T5WdSFcoMdew17nsxbhhq_8qiG-2yQO5jInxqXQTmlQdoRpzetifKlJFC6adaE2a_BKBKSKrWgYtNs9V32aaaPjzsuKzmG65CFCw-WC0kre4CBpwLaY0boQY7r0Gg"/>
+</div>
+<span class="text-lg font-medium">Daan</span>
+</div>
+<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-xl" data-icon="check">check</span>
+</div>
+</div>
+<div class="glass-card rounded-md p-4 flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full overflow-hidden bg-surface-container-high">
+<img alt="" class="w-full h-full object-cover opacity-60" data-alt="headshot of a woman with blond hair and bright eyes in natural morning light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCUhfZG6QA0V3hi2nUcgoNUxqRIpKvzHGX_k7hBIQk0jmfEGzuOUZURYgmbYmM6tedWLUIYzkUCoHL3t71SW2FsAs3vDIRvwZv1KcYpdGOf9O0ELu7JsqUxPv8KKWZulPLZJJnv4Uy7F0x9YOZM_1lZvq7x_n2ViIMV8ju92qfpqLLhDNdfV0sfmNh4sbTRrFwH40K1qgJibPFwTzs0nwbwfJkzyUm5x4sALGsCdxYq04VupU1e7sb1c9gPnJmtw0FY0wd-VoWpSgU"/>
+</div>
+<span class="text-lg font-medium text-on-surface-variant">Emma</span>
+</div>
+<div class="w-8 h-8 rounded-full border-2 border-outline-variant"></div>
+</div>
+<div class="glass-card rounded-md p-4 flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full overflow-hidden bg-surface-container-high">
+<img alt="" class="w-full h-full object-cover opacity-60" data-alt="confident professional man in casual clothing with clean white background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAHw9mPjRJT7Xw3l1Di2YpabgZktd83y2Kxy0LU_auBp0NB6xHXZX9KgNPBDEg8IcpCwl3UImIB8FjC-DxF7gZvGhQV0r9s49TvDkNxBrHNVaSJhlYk1r8qOGYSf1J4YEtHmQu4r9AEu43xRCcM0mhxlqpMkaQKtPYVnt78Zmaa0FHqegJJ5bVvzK9ouISA493LqeC7B_m7OLLQUTvO5PK18RzoykVwXDVhbrfkelF6mURN-_-ZqS-5qVDOUu1lUMvTKYG66DLQfG0"/>
+</div>
+<span class="text-lg font-medium text-on-surface-variant">Floris</span>
+</div>
+<div class="w-8 h-8 rounded-full border-2 border-outline-variant"></div>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Action Area -->
+<div class="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-background via-background/95 to-transparent z-40">
+<button class="w-full py-5 bg-gradient-to-br from-[#3953bd] to-[#72489e] text-white rounded-md text-xl font-bold shadow-2xl active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-3">
+<span>Start Avond</span>
+<span class="material-symbols-outlined" data-icon="bolt" data-weight="fill" style="font-variation-settings: 'FILL' 1;">bolt</span>
+</button>
+</div>
+<!-- Hidden Navigation Shell Logic (Suppressed for focused task) -->
+</body></html>

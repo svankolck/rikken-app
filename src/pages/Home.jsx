@@ -2,176 +2,205 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
-function Home({ user, onLogout }) {
+function Home({ user }) {
   const navigate = useNavigate();
   const [actiefAvond, setActiefAvond] = useState(null);
+  const [recenteAvonden, setRecenteAvonden] = useState([]);
 
   useEffect(() => {
-    // Check for active game night
     const checkActief = async () => {
       try {
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from('spelavonden')
-          .select('*')
+          .select('*, locaties(straat)')
           .eq('status', 'actief')
           .limit(1)
           .single();
+        if (data) setActiefAvond(data);
+      } catch {
+        // Geen actieve avond
+      }
+    };
 
-        if (data && !error) {
-          setActiefAvond(data);
-        }
-      } catch (err) {
-        // No active game night, that's fine
-        console.log('Geen actieve avond gevonden');
+    const loadRecent = async () => {
+      try {
+        const { data } = await supabase
+          .from('spelavonden')
+          .select('*, locaties(straat)')
+          .eq('status', 'afgerond')
+          .order('datum', { ascending: false })
+          .limit(3);
+        if (data) setRecenteAvonden(data);
+      } catch {
+        // Geen recente avonden
       }
     };
 
     checkActief();
+    loadRecent();
   }, []);
 
-  const handleNieuweAvond = () => {
-    if (actiefAvond) {
-      const confirm = window.confirm('Er is al een actieve spelavond. Doorgaan naar die avond?');
-      if (confirm) {
-        navigate(`/spelavond/${actiefAvond.id}`);
-      }
-    } else {
-      navigate('/nieuwe-avond');
-    }
+  const formatDatum = (dateStr) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
   return (
-    <div className="max-w-md mx-auto p-4 min-h-screen page-container">
-      {/* Modern Header */}
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 24px' }}>
-        <div style={{ width: '40px', flexShrink: 0 }}></div>
-
-        <h1 className="text-2xl font-bold flex items-center justify-center gap-3 flex-1">
-          <span className="flex gap-1">
-            <span style={{ color: 'white' }}>{"\u2660\uFE0E"}</span>
-            <span style={{ color: '#ff4b4b' }}>{"\u2665\uFE0E"}</span>
-          </span>
-          <span>Rikken</span>
-          <span className="flex gap-1">
-            <span style={{ color: '#ff4b4b' }}>{"\u2666\uFE0E"}</span>
-            <span style={{ color: 'white' }}>{"\u2663\uFE0E"}</span>
-          </span>
+    <div className="min-h-screen pb-32 text-on-surface">
+      {/* TopAppBar */}
+      <header className="top-nav">
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-indigo-700 opacity-0">arrow_back</span>
+        </div>
+        <h1 className="text-xl font-bold bg-gradient-to-r from-[#3953bd] to-[#72489e] bg-clip-text text-transparent">
+          Rikken Score
         </h1>
-
-        {/* User menu - SIMPEL */}
-        <div style={{ minWidth: '100px', display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
-          <button
-            onClick={() => user?.role === 'admin' && navigate('/admin')}
-            disabled={user?.role !== 'admin'}
-            style={{
-              width: '40px',
-              height: '40px',
-              backgroundColor: 'white',
-              color: user?.role === 'admin' ? '#1B5E7E' : '#999',
-              borderRadius: '50%',
-              fontSize: '20px',
-              border: '2px solid white',
-              cursor: user?.role === 'admin' ? 'pointer' : 'not-allowed',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-              boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-              opacity: user?.role === 'admin' ? 1 : 0.5
-            }}
-            title={user?.role === 'admin' ? 'Admin Panel' : 'Geen admin toegang'}
-          >
-            ⚙️
-          </button>
-          <button
-            onClick={() => navigate('/account')}
-            style={{
-              width: '40px',
-              height: '40px',
-              backgroundColor: 'white',
-              color: '#1B5E7E',
-              borderRadius: '50%',
-              fontSize: '20px',
-              border: '2px solid white',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-              boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-            }}
-            title="Account"
-          >
-            👤
+        <div className="flex items-center gap-2">
+          <button onClick={() => navigate('/account')}>
+            <span className="material-symbols-outlined text-indigo-700">account_circle</span>
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* Active avond banner */}
-      {actiefAvond && (
-        <div className="mt-6 mb-6 p-5 bg-gradient-to-r from-yellow-300 to-orange-300 rounded-3xl shadow-soft animate-pulse">
-          <p className="text-center font-semibold text-gray-800 mb-3">
-            🎯 Er is een actieve spelavond!
-          </p>
-          <button
-            onClick={() => navigate(`/spelavond/${actiefAvond.id}`)}
-            className="btn-primary w-full"
+      <main className="pt-24 px-6 max-w-[428px] mx-auto">
+        {/* Active Session Banner */}
+        {actiefAvond && (
+          <section className="mb-10">
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 p-8 shadow-2xl shadow-orange-200/50">
+              <div className="relative z-10">
+                <span className="text-[0.75rem] font-bold uppercase tracking-widest text-white/80 mb-2 block">
+                  Lopend Spel
+                </span>
+                <h2 className="text-2xl font-bold text-white mb-6">
+                  Actieve spelavond – {formatDatum(actiefAvond.datum)}
+                </h2>
+                <button
+                  onClick={() => navigate(`/spelavond/${actiefAvond.id}`)}
+                  className="bg-white text-orange-600 font-bold px-8 py-3 rounded-md shadow-lg active:scale-95 transition-transform"
+                >
+                  Ga verder
+                </button>
+              </div>
+              <div className="absolute -right-8 -top-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+              <div className="absolute -left-12 -bottom-12 w-48 h-48 bg-black/5 rounded-full blur-3xl"></div>
+            </div>
+          </section>
+        )}
+
+        {/* Action Grid */}
+        <div className="grid grid-cols-2 gap-5 mb-10">
+          {/* Spelers */}
+          <div
+            onClick={() => navigate('/spelers')}
+            className="glass-card rounded-xl p-6 flex flex-col items-center justify-center text-center shadow-[0_12px_40px_rgba(57,83,189,0.06)] active:scale-95 transition-all cursor-pointer"
           >
-            Ga naar actieve avond
-          </button>
+            <div className="w-14 h-14 bg-blue-100 rounded-md flex items-center justify-center mb-4">
+              <span className="material-symbols-outlined text-blue-600 text-3xl">group</span>
+            </div>
+            <span className="text-sm font-semibold text-on-surface">Spelers</span>
+          </div>
+
+          {/* Locaties */}
+          <div
+            onClick={() => navigate('/locaties')}
+            className="glass-card rounded-xl p-6 flex flex-col items-center justify-center text-center shadow-[0_12px_40px_rgba(57,83,189,0.06)] active:scale-95 transition-all cursor-pointer"
+          >
+            <div className="w-14 h-14 bg-green-100 rounded-md flex items-center justify-center mb-4">
+              <span className="material-symbols-outlined text-green-600 text-3xl">location_on</span>
+            </div>
+            <span className="text-sm font-semibold text-on-surface">Locaties</span>
+          </div>
+
+          {/* Spel Instellingen */}
+          <div
+            onClick={() => navigate('/spel-settings')}
+            className="glass-card rounded-xl p-6 flex flex-col items-center justify-center text-center shadow-[0_12px_40px_rgba(57,83,189,0.06)] active:scale-95 transition-all cursor-pointer"
+          >
+            <div className="w-14 h-14 bg-purple-100 rounded-md flex items-center justify-center mb-4">
+              <span className="material-symbols-outlined text-purple-600 text-3xl">settings</span>
+            </div>
+            <span className="text-sm font-semibold text-on-surface">Spel Instellingen</span>
+          </div>
+
+          {/* Punten Instellingen */}
+          <div
+            onClick={() => navigate('/punten-settings')}
+            className="glass-card rounded-xl p-6 flex flex-col items-center justify-center text-center shadow-[0_12px_40px_rgba(57,83,189,0.06)] active:scale-95 transition-all cursor-pointer"
+          >
+            <div className="w-14 h-14 bg-orange-100 rounded-md flex items-center justify-center mb-4">
+              <span className="material-symbols-outlined text-orange-600 text-3xl">emoji_events</span>
+            </div>
+            <span className="text-sm font-semibold text-on-surface">Punten Instellingen</span>
+          </div>
+
+          {/* Nieuwe Avond */}
+          <div
+            onClick={() => navigate('/nieuwe-avond')}
+            className="glass-card rounded-xl p-6 flex flex-col items-center justify-center text-center shadow-[0_12px_40px_rgba(57,83,189,0.06)] active:scale-95 transition-all bg-gradient-to-br from-[#3953bd]/5 to-[#72489e]/5 cursor-pointer"
+          >
+            <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-indigo-200">
+              <span className="material-symbols-outlined text-white text-3xl">add_circle</span>
+            </div>
+            <span className="text-sm font-bold bg-gradient-to-r from-[#3953bd] to-[#72489e] bg-clip-text text-transparent">
+              Nieuwe Avond
+            </span>
+          </div>
+
+          {/* Analytics */}
+          <div
+            onClick={() => navigate('/analytics')}
+            className="glass-card rounded-xl p-6 flex flex-col items-center justify-center text-center shadow-[0_12px_40px_rgba(57,83,189,0.06)] active:scale-95 transition-all cursor-pointer"
+          >
+            <div className="w-14 h-14 bg-teal-100 rounded-md flex items-center justify-center mb-4">
+              <span className="material-symbols-outlined text-teal-600 text-3xl">bar_chart</span>
+            </div>
+            <span className="text-sm font-semibold text-on-surface">Analytics</span>
+          </div>
         </div>
-      )}
 
-      {/* Modern Grid met knoppen */}
-      <div className="grid grid-cols-2 gap-5">
-        <button
-          onClick={() => navigate('/spelers')}
-          className="btn-primary h-32 text-xl flex flex-col items-center justify-center gap-2"
-        >
-          <span className="text-3xl">👥</span>
-          <span>Spelers</span>
-        </button>
+        {/* Recent Gespeeld */}
+        {recenteAvonden.length > 0 && (
+          <div className="mb-10">
+            <h3 className="text-[0.75rem] font-bold uppercase tracking-widest text-slate-400 mb-6">
+              Recent Gespeeld
+            </h3>
+            {recenteAvonden.map((avond) => (
+              <div
+                key={avond.id}
+                onClick={() => navigate(`/spelavond/${avond.id}`)}
+                className="glass-card rounded-xl p-6 flex items-center justify-between mb-4 shadow-[0_8px_30px_rgba(57,83,189,0.04)] cursor-pointer active:scale-[0.98] transition-all"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-md bg-surface-container-high flex items-center justify-center">
+                    <span className="material-symbols-outlined text-primary">history</span>
+                  </div>
+                  <div>
+                    <p className="font-bold text-on-surface">{avond.locaties?.straat || 'Onbekende locatie'}</p>
+                    <p className="text-xs text-on-surface-variant">{formatDatum(avond.datum)}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </main>
 
-        <button
-          onClick={() => navigate('/locaties')}
-          className="btn-primary h-32 text-xl flex flex-col items-center justify-center gap-2"
-        >
-          <span className="text-3xl">📍</span>
-          <span>Locaties</span>
-        </button>
-
-        <button
-          onClick={() => navigate('/spel-settings')}
-          className="btn-primary h-32 text-xl flex flex-col items-center justify-center gap-2"
-        >
-          <span className="text-3xl">⚙️</span>
-          <span>Spel Settings</span>
-        </button>
-
-        <button
-          onClick={() => navigate('/punten-settings')}
-          className="btn-primary h-32 text-xl flex flex-col items-center justify-center gap-2"
-        >
-          <span className="text-3xl">🎯</span>
-          <span>Punten Settings</span>
-        </button>
-
-        <button
-          onClick={handleNieuweAvond}
-          className="btn-danger h-32 text-xl col-span-1 flex flex-col items-center justify-center gap-2"
-        >
-          <span className="text-3xl">🎲</span>
-          <span>Nieuwe Avond</span>
-        </button>
-
-        <button
-          onClick={() => navigate('/analytics')}
-          className="btn-primary h-32 text-xl flex flex-col items-center justify-center gap-2"
-        >
-          <span className="text-3xl">📊</span>
-          <span>Analytics</span>
-        </button>
-      </div>
+      {/* BottomNavBar */}
+      <nav className="bottom-nav">
+        <div className="nav-item-active">
+          <span className="material-symbols-outlined mb-1" style={{ fontVariationSettings: "'FILL' 1" }}>leaderboard</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest">Scoreboard</span>
+        </div>
+        <div className="nav-item cursor-pointer" onClick={() => navigate('/analytics')}>
+          <span className="material-symbols-outlined mb-1">history</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest">History</span>
+        </div>
+        <div className="nav-item cursor-pointer" onClick={() => navigate('/spel-settings')}>
+          <span className="material-symbols-outlined mb-1">settings</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest">Settings</span>
+        </div>
+      </nav>
     </div>
   );
 }

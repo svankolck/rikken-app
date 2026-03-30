@@ -235,6 +235,96 @@ USING (
 -- ============================================
 -- KLAAR!
 -- ============================================
+-- 7. AVOND_SPELERS TABEL
+-- ============================================
+
+-- SELECT: Iedereen kan avond_spelers zien
+CREATE POLICY "Iedereen kan avond_spelers zien"
+ON avond_spelers FOR SELECT
+TO authenticated
+USING (true);
+
+-- INSERT: Iedereen kan avond_spelers aanmaken
+CREATE POLICY "Iedereen kan avond_spelers aanmaken"
+ON avond_spelers FOR INSERT
+TO authenticated
+WITH CHECK (true);
+
+-- UPDATE: Iedereen kan avond_spelers updaten (verdubbelaar, actief, etc.)
+CREATE POLICY "Iedereen kan avond_spelers updaten"
+ON avond_spelers FOR UPDATE
+TO authenticated
+USING (true);
+
+-- DELETE: Alleen admin kan avond_spelers verwijderen
+CREATE POLICY "Admin kan avond_spelers verwijderen"
+ON avond_spelers FOR DELETE
+TO authenticated
+USING (
+  EXISTS (
+    SELECT 1 FROM profiles
+    WHERE id = auth.uid() AND role = 'admin'
+  )
+);
+
+
+-- ============================================
+-- 8. SPEL_SETTINGS TABEL
+-- ============================================
+
+-- SELECT: Iedereen kan spel_settings zien
+CREATE POLICY "Iedereen kan spel_settings zien"
+ON spel_settings FOR SELECT
+TO authenticated
+USING (true);
+
+-- INSERT: Alleen admin
+CREATE POLICY "Admin kan spel_settings aanmaken"
+ON spel_settings FOR INSERT
+TO authenticated
+WITH CHECK (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+-- UPDATE: Alleen admin
+CREATE POLICY "Admin kan spel_settings updaten"
+ON spel_settings FOR UPDATE
+TO authenticated
+USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+-- DELETE: Alleen admin
+CREATE POLICY "Admin kan spel_settings verwijderen"
+ON spel_settings FOR DELETE
+TO authenticated
+USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+
+-- ============================================
+-- 9. PUNTEN_SETTINGS TABEL
+-- ============================================
+
+-- SELECT: Iedereen kan punten_settings zien
+CREATE POLICY "Iedereen kan punten_settings zien"
+ON punten_settings FOR SELECT
+TO authenticated
+USING (true);
+
+-- INSERT/UPDATE/DELETE: Alleen admin
+CREATE POLICY "Admin kan punten_settings beheren"
+ON punten_settings FOR ALL
+TO authenticated
+USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+
+-- ============================================
+-- KLAAR!
+-- ============================================
 -- Na het uitvoeren van dit script:
 -- 1. Test inloggen
 -- 2. Test spelers lijst bekijken

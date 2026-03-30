@@ -4,54 +4,95 @@
 
 @layer base {
   body {
-    @apply bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50 text-gray-800;
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #f0fdfa 100%);
     min-height: 100vh;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-    text-rendering: optimizeLegibility;
+    color: #141d21;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   }
 }
 
 @layer components {
+  .glass-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
 
-  /* Modern gradient button */
+  .glass-card-strong {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .top-nav {
+    @apply fixed top-0 w-full z-50 backdrop-blur-xl flex items-center justify-between px-6 py-4;
+    background: rgba(255, 255, 255, 0.7);
+    box-shadow: 0 12px 40px rgba(57, 83, 189, 0.06);
+  }
+
+  .bottom-nav {
+    @apply fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 z-50 rounded-t-xl;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 -12px 40px rgba(57, 83, 189, 0.06);
+  }
+
+  .nav-item-active {
+    @apply flex flex-col items-center justify-center text-white rounded-2xl px-6 py-2;
+    background: linear-gradient(135deg, #3953bd, #72489e);
+  }
+
+  .nav-item {
+    @apply flex flex-col items-center justify-center text-slate-400 px-6 py-2 transition-all duration-200;
+  }
+
+  .gradient-primary {
+    background: linear-gradient(135deg, #3953bd, #72489e);
+  }
+
   .btn-primary {
-    @apply bg-gradient-main text-white font-semibold py-4 px-8 rounded-2xl shadow-button hover:shadow-soft hover:scale-105 transition-all duration-300 ease-out flex items-center justify-center text-center;
-    word-spacing: normal;
-    letter-spacing: normal;
-    white-space: nowrap;
-    font-family: 'Inter', sans-serif !important;
+    @apply text-white font-bold py-4 rounded-md shadow-xl active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-3;
+    background: linear-gradient(135deg, #3953bd, #72489e);
   }
 
   .btn-secondary {
-    @apply bg-white text-gray-700 font-semibold py-4 px-8 rounded-2xl shadow-card hover:shadow-soft hover:scale-105 transition-all duration-300 border border-gray-100;
+    @apply bg-white border-2 border-primary-fixed text-primary font-bold py-4 rounded-md active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-3;
+  }
+
+  .icon-btn {
+    @apply w-10 h-10 flex items-center justify-center rounded-full transition-colors;
   }
 
   .btn-danger {
-    @apply bg-gradient-to-r from-red-400 to-pink-400 text-white font-semibold py-4 px-8 rounded-2xl shadow-button hover:shadow-soft hover:scale-105 transition-all duration-300;
+    @apply text-white font-bold py-4 rounded-md active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-3;
+    background: linear-gradient(135deg, #ba1a1a, #ef4444);
   }
 
-  /* Modern glassmorphism card */
+  /* Compatibility classes voor secondary pages */
   .card {
-    @apply bg-white/80 backdrop-blur-lg rounded-3xl shadow-card p-4 border border-white/20;
+    @apply bg-white/80 backdrop-blur-lg rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] p-4 border border-white/20;
   }
 
-  /* Soft modern input */
   .input-field {
-    @apply w-full px-5 py-4 bg-white rounded-2xl focus:outline-none focus:ring-2 focus:ring-rikken-accent/50 text-lg shadow-sm border border-gray-100 transition-all duration-200;
+    @apply w-full px-5 py-4 bg-white rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/30 text-lg shadow-sm border border-outline-variant transition-all duration-200;
   }
 
-  /* Modern list item with soft styling */
   .list-item {
-    @apply flex items-center justify-between p-5 bg-white rounded-2xl mb-3 shadow-sm hover:shadow-card transition-all duration-300 border border-gray-50 hover:scale-[1.02];
+    @apply flex items-center justify-between p-5 bg-white rounded-2xl mb-3 shadow-sm transition-all duration-300 border border-white/50;
   }
 
-  /* Modern header with gradient */
   .page-header {
-    @apply bg-gradient-main text-white px-6 flex items-center shadow-soft rounded-3xl;
-    min-height: 80px;
-    height: 80px;
+    @apply text-white px-6 flex items-center shadow-[0_8px_30px_rgba(57,83,189,0.15)] rounded-2xl;
+    background: linear-gradient(135deg, #3953bd, #72489e);
+    min-height: 72px;
+    height: 72px;
     position: fixed;
     top: 12px;
     left: 50%;
@@ -59,22 +100,12 @@
     z-index: 50;
     max-width: calc(448px - 32px);
     width: calc(100% - 32px);
-    overflow: visible !important;
   }
 
-  /* Add padding to page content to account for fixed header */
   .page-container {
-    padding-top: 96px !important;
+    padding-top: 90px !important;
   }
 
-  @media (max-width: 768px) {
-    .page-header {
-      @apply rounded-2xl;
-      top: 8px;
-    }
-  }
-
-  /* Back button styling */
   .back-button {
     @apply mr-4 hover:scale-110 transition-transform;
     width: 30px;
@@ -89,80 +120,18 @@
     height: 30px;
   }
 
-  /* Modern player button with soft colors */
   .speler-button {
-    @apply bg-gradient-to-br from-purple-300 to-pink-300 text-gray-800 font-semibold py-5 px-6 rounded-2xl shadow-button hover:shadow-soft hover:scale-105 transition-all duration-300 text-lg;
+    @apply text-white font-semibold py-5 px-6 rounded-2xl shadow-lg active:scale-95 transition-all duration-200 text-lg;
+    background: linear-gradient(135deg, #3953bd, #72489e);
   }
+}
 
-  /* Decorative blob shapes for background */
-  .blob {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(70px);
-    opacity: 0.5;
-    pointer-events: none;
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
-
-  .blob-1 {
-    @apply blob bg-rikken-blue;
-    width: 300px;
-    height: 300px;
-    top: -100px;
-    right: -100px;
-  }
-
-  .blob-2 {
-    @apply blob bg-rikken-green;
-    width: 250px;
-    height: 250px;
-    bottom: -50px;
-    left: -50px;
-  }
-
-  /* Fade in animation */
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: scale(0.95);
-    }
-
-    to {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
-
-  .animate-fadeIn {
-    animation: fadeIn 0.3s ease-out;
-  }
-
-  /* Date input fix for mobile */
-  input[type="date"] {
-    max-width: 100%;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-  }
-
-  input[type="date"]::-webkit-calendar-picker-indicator {
-    background: transparent;
-    bottom: 0;
-    color: transparent;
-    cursor: pointer;
-    height: auto;
-    left: 0;
-    position: absolute;
-    right: 0;
-    top: 0;
-    width: auto;
-  }
-
-  @media (max-width: 640px) {
-    input[type="date"] {
-      font-size: 16px !important;
-      /* Voorkomt zoom op iOS */
-      padding-left: 0.75rem !important;
-      padding-right: 0.75rem !important;
-    }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }

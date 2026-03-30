@@ -9,6 +9,7 @@ function NieuweAvond() {
   const [locaties, setLocaties] = useState([]);
   const [geselecteerdeSpelers, setGeselecteerdeSpelers] = useState([]);
   const [geselecteerdeLocatie, setGeselecteerdeLocatie] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -20,7 +21,6 @@ function NieuweAvond() {
         supabase.from('spelers').select('*').order('naam'),
         supabase.from('locaties').select('*').order('straat')
       ]);
-
       if (spelersResult.data) setSpelers(spelersResult.data);
       if (locatiesResult.data) setLocaties(locatiesResult.data);
     } catch (err) {
@@ -45,27 +45,21 @@ function NieuweAvond() {
       alert('Minimaal 4 spelers vereist');
       return;
     }
-
     if (!geselecteerdeLocatie) {
       alert('Selecteer een locatie');
       return;
     }
 
+    setLoading(true);
     try {
-      // Create spelavond
       const { data: spelavond, error: spelavondError } = await supabase
         .from('spelavonden')
-        .insert({
-          datum,
-          locatie_id: parseInt(geselecteerdeLocatie),
-          status: 'actief'
-        })
+        .insert({ datum, locatie_id: parseInt(geselecteerdeLocatie), status: 'actief' })
         .select()
         .single();
 
       if (spelavondError) throw spelavondError;
 
-      // Create avond_spelers entries
       const avondSpelers = geselecteerdeSpelers.map((spelerId, index) => ({
         spelavond_id: spelavond.id,
         speler_id: spelerId,
@@ -73,16 +67,15 @@ function NieuweAvond() {
         actief: true
       }));
 
-      const { error: spelerError } = await supabase
-        .from('avond_spelers')
-        .insert(avondSpelers);
-
+      const { error: spelerError } = await supabase.from('avond_spelers').insert(avondSpelers);
       if (spelerError) throw spelerError;
 
       navigate(`/spelavond/${spelavond.id}`);
     } catch (err) {
       console.error('Fout bij starten avond:', err);
       alert(`Fout bij starten avond: ${err.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -91,117 +84,153 @@ function NieuweAvond() {
     return speler ? speler.naam : '';
   };
 
-  return (
-    <div className="max-w-md mx-auto p-4 min-h-screen page-container">
-      {/* Modern Header */}
-      <div className="page-header">
-        <button onClick={() => navigate('/')} className="back-button">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-        <h1 className="text-2xl font-bold">🎲 Nieuwe Avond</h1>
-      </div>
+  const getInitials = (naam) => {
+    return naam.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
 
-      {/* Modern Informatie box */}
-      <div className="mt-3 card space-y-4">
-        {/* Datum */}
-        <div>
-          <label className="font-semibold block mb-2 text-gray-700 flex items-center gap-2">
-            <span>📅</span> Datum:
-          </label>
+  const formatDatum = (dateStr) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  };
+
+  const canStart = geselecteerdeSpelers.length >= 4 && geselecteerdeLocatie;
+
+  return (
+    <div className="min-h-screen pb-40 text-on-surface">
+      {/* TopAppBar */}
+      <header className="top-nav">
+        <button onClick={() => navigate('/')} className="text-indigo-700 active:scale-95 transition-transform">
+          <span className="material-symbols-outlined">arrow_back</span>
+        </button>
+        <h1 className="text-xl font-bold bg-gradient-to-r from-[#3953bd] to-[#72489e] bg-clip-text text-transparent">
+          Nieuwe Avond
+        </h1>
+        <div className="w-6"></div>
+      </header>
+
+      <main className="pt-24 px-6 max-w-[428px] mx-auto">
+        {/* Datum Card */}
+        <div className="glass-card rounded-xl p-6 shadow-[0_12px_40px_rgba(57,83,189,0.06)] mb-6">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-indigo-100 rounded-md flex items-center justify-center">
+              <span className="material-symbols-outlined text-indigo-600">calendar_today</span>
+            </div>
+            <div className="flex-1">
+              <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Datum</p>
+              <p className="font-semibold text-on-surface text-sm">{formatDatum(datum)}</p>
+            </div>
+          </div>
           <input
             type="date"
             value={datum}
             onChange={(e) => setDatum(e.target.value)}
-            className="w-full max-w-full px-4 py-3 bg-white rounded-2xl focus:outline-none focus:ring-2 focus:ring-rikken-accent/50 text-base shadow-sm border border-gray-100 transition-all duration-200"
-            style={{ maxWidth: '100%' }}
+            className="w-full px-4 py-3 rounded-md border border-outline-variant bg-white/60 text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30 text-sm"
           />
         </div>
 
-        {/* Geselecteerde spelers */}
-        <div>
-          <label className="font-semibold block mb-2 text-gray-700 flex items-center gap-2">
-            <span>👥</span> Spelers vanavond ({geselecteerdeSpelers.length}/6):
-          </label>
-          <div className="space-y-1.5">
-            {geselecteerdeSpelers.length === 0 ? (
-              <p className="text-gray-400 italic text-center py-2">Geen spelers geselecteerd</p>
-            ) : (
-              geselecteerdeSpelers.map((spelerId, index) => (
-                <div key={spelerId} className="flex items-center gap-2 p-2 bg-purple-600 text-white rounded-xl shadow-sm">
-                  <span className="font-bold text-base w-6">{index + 1}.</span>
-                  <span className="flex-1 font-medium text-sm">{getSpelerNaam(spelerId)}</span>
+        {/* Geselecteerde spelers chips */}
+        {geselecteerdeSpelers.length > 0 && (
+          <div className="mb-6">
+            <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3">
+              Geselecteerd ({geselecteerdeSpelers.length}/6)
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {geselecteerdeSpelers.map((spelerId) => (
+                <div
+                  key={spelerId}
+                  className="flex items-center gap-2 px-4 py-2 rounded-full text-white text-sm font-semibold"
+                  style={{ background: 'linear-gradient(135deg, #3953bd, #72489e)' }}
+                >
+                  <span>{getSpelerNaam(spelerId)}</span>
                   <button
                     onClick={() => handleSpelerToggle(spelerId)}
-                    className="text-white hover:scale-125 transition-transform text-lg font-bold"
+                    className="text-white/80 hover:text-white transition-colors"
                   >
-                    ✕
+                    <span className="material-symbols-outlined text-base">close</span>
                   </button>
                 </div>
-              ))
-            )}
-          </div>
-          <p className="text-xs text-gray-500 mt-1.5 text-center">
-            Minimaal 4, maximaal 6 spelers
-          </p>
-        </div>
-
-        {/* Spelers selectie */}
-        {geselecteerdeSpelers.length < 6 && (
-          <div>
-            <label className="font-semibold block mb-2 text-gray-700">
-              ➕ Voeg speler toe:
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {spelers
-                .filter(s => !geselecteerdeSpelers.includes(s.id))
-                .map(speler => (
-                  <button
-                    key={speler.id}
-                    onClick={() => handleSpelerToggle(speler.id)}
-                    className="py-2.5 px-3 bg-white hover:bg-purple-100 text-gray-800 rounded-xl border-2 border-gray-100 hover:border-purple-300 transition-all shadow-sm hover:shadow-md font-medium text-sm"
-                  >
-                    {speler.naam}
-                  </button>
-                ))
-              }
+              ))}
             </div>
           </div>
         )}
 
         {/* Locatie */}
-        <div>
-          <label className="font-semibold block mb-2 text-gray-700 flex items-center gap-2">
-            <span>📍</span> Locatie:
-          </label>
+        <div className="glass-card rounded-xl p-6 shadow-[0_12px_40px_rgba(57,83,189,0.06)] mb-6">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-green-100 rounded-md flex items-center justify-center">
+              <span className="material-symbols-outlined text-green-600">location_on</span>
+            </div>
+            <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Locatie</p>
+          </div>
           <select
             value={geselecteerdeLocatie}
             onChange={(e) => setGeselecteerdeLocatie(e.target.value)}
-            className="input-field appearance-none cursor-pointer"
+            className="w-full px-4 py-3 rounded-md border border-outline-variant bg-white/60 text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30 text-sm appearance-none cursor-pointer"
           >
             <option value="">Selecteer locatie...</option>
             {locaties.map(locatie => (
-              <option key={locatie.id} value={locatie.id}>
-                {locatie.straat}
-              </option>
+              <option key={locatie.id} value={locatie.id}>{locatie.straat}</option>
             ))}
           </select>
         </div>
-      </div>
 
-      {/* Modern Start knop */}
-      <div className="mt-4 mb-6 flex justify-center">
-        <button
-          onClick={handleStart}
-          className={`btn-primary text-lg px-12 py-3.5 ${geselecteerdeSpelers.length < 4 || !geselecteerdeLocatie
-            ? 'opacity-50 cursor-not-allowed'
-            : ''
-            }`}
-          disabled={geselecteerdeSpelers.length < 4 || !geselecteerdeLocatie}
-        >
-          🎮 Start Avond
-        </button>
+        {/* Spelers lijst */}
+        <div className="mb-6">
+          <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-4">
+            Spelers toevoegen
+          </p>
+          <div className="space-y-3">
+            {spelers.map((speler) => {
+              const selected = geselecteerdeSpelers.includes(speler.id);
+              return (
+                <div
+                  key={speler.id}
+                  onClick={() => handleSpelerToggle(speler.id)}
+                  className={`glass-card rounded-xl p-4 flex items-center justify-between shadow-[0_8px_30px_rgba(57,83,189,0.04)] cursor-pointer active:scale-[0.98] transition-all border-l-4 ${selected ? 'border-primary' : 'border-transparent'}`}
+                >
+                  <div className="flex items-center gap-4">
+                    <div
+                      className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md"
+                      style={selected
+                        ? { background: 'linear-gradient(135deg, #3953bd, #72489e)' }
+                        : { background: '#e0e9ef', color: '#444653' }
+                      }
+                    >
+                      {getInitials(speler.naam)}
+                    </div>
+                    <p className="font-semibold text-on-surface">{speler.naam}</p>
+                  </div>
+                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${selected ? 'border-primary bg-primary' : 'border-outline-variant'}`}>
+                    {selected && (
+                      <span className="material-symbols-outlined text-white text-sm" style={{ fontVariationSettings: "'FILL' 1", fontSize: '14px' }}>check</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </main>
+
+      {/* Fixed Start button */}
+      <div className="fixed bottom-0 left-0 w-full px-6 pb-8 pt-4 z-50" style={{ background: 'rgba(244,250,255,0.9)', backdropFilter: 'blur(12px)' }}>
+        <div className="max-w-[428px] mx-auto">
+          <button
+            onClick={handleStart}
+            disabled={!canStart || loading}
+            className={`w-full text-white py-4 rounded-md font-bold text-lg flex items-center justify-center gap-3 transition-all duration-200 ${canStart && !loading ? 'active:scale-[0.98] shadow-xl' : 'opacity-50 cursor-not-allowed'}`}
+            style={{ background: 'linear-gradient(135deg, #3953bd, #72489e)' }}
+          >
+            <span className="material-symbols-outlined">bolt</span>
+            {loading ? 'Starten...' : 'Start Avond'}
+          </button>
+          {geselecteerdeSpelers.length < 4 && (
+            <p className="text-center text-xs text-on-surface-variant mt-2">
+              Minimaal {4 - geselecteerdeSpelers.length} speler{4 - geselecteerdeSpelers.length !== 1 ? 's' : ''} nog nodig
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

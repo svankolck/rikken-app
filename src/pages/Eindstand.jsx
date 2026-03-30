@@ -3,12 +3,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import html2canvas from 'html2canvas';
 import { supabase } from '../lib/supabase';
 
-function Eindstand({ user, onLogout }) {
+function Eindstand() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [eindstand, setEindstand] = useState([]);
-  const [rondes, setRondes] = useState([]);
-  const [scorebord, setScoreboard] = useState({});
   const [datum, setDatum] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -22,68 +20,39 @@ function Eindstand({ user, onLogout }) {
     setLoading(true);
     setError(null);
     try {
-      // Load spelavond
       const { data: spelavondData, error: spelavondError } = await supabase
-        .from('spelavonden')
-        .select('*')
-        .eq('id', parseInt(id))
-        .single();
-
+        .from('spelavonden').select('*').eq('id', parseInt(id)).single();
       if (spelavondError) throw spelavondError;
       setDatum(spelavondData.datum);
 
-      // Load avond_spelers with speler names
       const { data: avondSpelersData } = await supabase
-        .from('avond_spelers')
-        .select('*')
-        .eq('spelavond_id', spelavondData.id)
-        .order('volgorde');
+        .from('avond_spelers').select('*').eq('spelavond_id', spelavondData.id).order('volgorde');
 
-      // Get all spelers to map names
-      const { data: allSpelersData } = await supabase
-        .from('spelers')
-        .select('*');
-
+      const { data: allSpelersData } = await supabase.from('spelers').select('*');
       const spelersMap = {};
-      (allSpelersData || []).forEach(s => {
-        spelersMap[s.id] = s.naam;
-      });
+      (allSpelersData || []).forEach(s => { spelersMap[s.id] = s.naam; });
 
-      // Load rondes with spel_settings and punten_settings
       const { data: rondesData } = await supabase
         .from('rondes')
         .select('*, spel_settings(id, naam, met_maat, minimaal_slagen, punten_settings(gemaakt, overslag, nat, onderslag))')
         .eq('spelavond_id', spelavondData.id)
         .order('ronde_nummer');
 
-      // Helper function to get stilzitters for a specific round
       const avondSpelerIds = (avondSpelersData || []).map(as => as.id);
       const getStilzitters = (rondeNr) => {
         if (!spelavondData.start_deler) return [];
         const numSpelers = avondSpelerIds.length;
         if (numSpelers < 5) return [];
-
         const startIndex = avondSpelerIds.indexOf(spelavondData.start_deler);
         const delerIndex = (startIndex + (rondeNr - 1)) % numSpelers;
-        const delerId = avondSpelerIds[delerIndex];
-
-        if (numSpelers === 5) return [delerId];
-        if (numSpelers === 6) {
-          const tegenoverIndex = (delerIndex + 3) % numSpelers;
-          return [delerId, avondSpelerIds[tegenoverIndex]];
-        }
+        if (numSpelers === 5) return [avondSpelerIds[delerIndex]];
+        if (numSpelers === 6) return [avondSpelerIds[delerIndex], avondSpelerIds[(delerIndex + 3) % numSpelers]];
         return [];
       };
 
-      // Calculate scores
-      const scoreBoard = {};
       const spelerTotalen = {};
-      (avondSpelersData || []).forEach(as => {
-        scoreBoard[as.id] = {};
-        spelerTotalen[as.id] = 0;
-      });
+      (avondSpelersData || []).forEach(as => { spelerTotalen[as.id] = 0; });
 
-      // Group rounds by number
       const roundsByNr = {};
       (rondesData || []).forEach(r => {
         if (!roundsByNr[r.ronde_nummer]) roundsByNr[r.ronde_nummer] = [];
@@ -94,7 +63,7 @@ function Eindstand({ user, onLogout }) {
         const rondeNr = parseInt(rondeNrStr);
         const rows = roundsByNr[rondeNr];
         const currentStilzitters = getStilzitters(rondeNr);
-        const actieveSpelersInRonde = avondSpelerIds.filter(id => !currentStilzitters.includes(id));
+        const actieveSpelersInRonde = avondSpelerIds.filter(sid => !currentStilzitters.includes(sid));
 
         rows.forEach(r => {
           const isMetMaat = r.spel_settings?.met_maat;
@@ -103,29 +72,26 @@ function Eindstand({ user, onLogout }) {
           const rondeScores = [];
 
           if (rows.length === 1) {
-            // Standard Solo or Maat
             if (r.spel_settings?.naam === 'Schoppen Mie') {
               const vrouwId = r.schoppen_vrouw_id;
               const laatsteId = r.laatste_slag_id;
               const basis = puntenConfig.gemaakt || 5;
-
               if (vrouwId && vrouwId === laatsteId) {
-                // Bonus holder of both: 4x basis
                 rondeScores.push({ id: vrouwId, p: basis * 4 * multiplier });
               } else {
-                if (vrouwId) rondeScores.push({ id: vrouwId, p: (puntenConfig.gemaakt || 5) * multiplier });
-                if (laatsteId) rondeScores.push({ id: laatsteId, p: (puntenConfig.gemaakt || 5) * multiplier });
+                if (vrouwId) rondeScores.push({ id: vrouwId, p: basis * multiplier });
+                if (laatsteId) rondeScores.push({ id: laatsteId, p: basis * multiplier });
               }
             } else if (r.gemaakt) {
               const uitdagers = [r.uitdager_id];
               if (r.maat_id) uitdagers.push(r.maat_id);
-              const tegenspelers = actieveSpelersInRonde.filter(id => !uitdagers.includes(id));
+              const tegenspelers = actieveSpelersInRonde.filter(sid => !uitdagers.includes(sid));
               let base = puntenConfig.gemaakt || 5;
               if (r.minimaal_slagen && r.slagen_gehaald > r.minimaal_slagen) {
                 base += (puntenConfig.overslag || 1) * (r.slagen_gehaald - r.minimaal_slagen);
               }
               const finalPoints = Math.round(base * multiplier);
-              tegenspelers.forEach(id => rondeScores.push({ id, p: finalPoints }));
+              tegenspelers.forEach(sid => rondeScores.push({ id: sid, p: finalPoints }));
             } else {
               const uitdagers = [r.uitdager_id];
               if (r.maat_id) uitdagers.push(r.maat_id);
@@ -135,114 +101,74 @@ function Eindstand({ user, onLogout }) {
               }
               const soloFactor = (!isMetMaat && !r.maat_id) ? 3 : 1;
               const finalPoints = Math.round(base * soloFactor * multiplier);
-              uitdagers.forEach(id => rondeScores.push({ id, p: finalPoints }));
+              uitdagers.forEach(sid => rondeScores.push({ id: sid, p: finalPoints }));
             }
           } else {
-            // Meerdere
             if (r.gemaakt) {
-              const anderen = actieveSpelersInRonde.filter(id => id !== r.uitdager_id);
+              const anderen = actieveSpelersInRonde.filter(sid => sid !== r.uitdager_id);
               const finalPoints = Math.round((puntenConfig.gemaakt || 5) * multiplier);
-              anderen.forEach(id => rondeScores.push({ id, p: finalPoints }));
+              anderen.forEach(sid => rondeScores.push({ id: sid, p: finalPoints }));
             } else {
               const finalPoints = Math.round((puntenConfig.gemaakt || 5) * 3 * multiplier);
               rondeScores.push({ id: r.uitdager_id, p: finalPoints });
             }
           }
 
-          // Apply to scoreboard and totals
           rondeScores.forEach(rs => {
-            if (scoreBoard[rs.id]) {
-              scoreBoard[rs.id][rondeNr] = (scoreBoard[rs.id][rondeNr] || 0) + rs.p;
-              spelerTotalen[rs.id] += rs.p;
-            }
+            if (rs.id in spelerTotalen) spelerTotalen[rs.id] += rs.p;
           });
         });
       });
 
-      // Build eindstand array sorted by total points (LOWEST score wins)
       const eindstandArr = (avondSpelersData || []).map(as => ({
         avond_speler_id: as.id,
         naam: spelersMap[as.speler_id] || 'Onbekend',
         totaal_punten: spelerTotalen[as.id] || 0
       })).sort((a, b) => a.totaal_punten - b.totaal_punten);
 
-      // Unique round numbers
-      const rondeNummers = Object.keys(roundsByNr).map(n => parseInt(n)).sort((a, b) => a - b);
-
       setEindstand(eindstandArr);
-      setRondes(rondeNummers);
-      setScoreboard(scoreBoard);
-
     } catch (err) {
       console.error('Fout bij laden eindstand:', err);
-      setError(err.message || 'Onbekende fout bij laden eindstand');
+      setError(err.message || 'Onbekende fout');
     } finally {
       setLoading(false);
     }
   };
 
-  const formatDatum = (datum) => {
-    if (!datum) return '';
-    return new Date(datum).toLocaleDateString('nl-NL', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+  const formatDatum = (dateStr) => {
+    if (!dateStr) return '';
+    return new Date(dateStr).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   };
 
-  const handleWhatsAppShare = async () => {
+  const getInitials = (naam) => naam.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+
+  const handleDelen = async () => {
     if (!resultaatRef.current) return;
-
     try {
-      const canvas = await html2canvas(resultaatRef.current, {
-        backgroundColor: '#ffffff',
-        scale: 2
-      });
-
+      const canvas = await html2canvas(resultaatRef.current, { backgroundColor: '#ffffff', scale: 2 });
       canvas.toBlob(async (blob) => {
         const file = new File([blob], 'rikken-eindstand.png', { type: 'image/png' });
-
         if (navigator.share) {
-          try {
-            await navigator.share({
-              files: [file],
-              title: 'Rikken Eindstand',
-              text: 'Bekijk de eindstand van vanavond!'
-            });
-          } catch (err) {
-            console.log('Share geannuleerd', err);
-          }
+          try { await navigator.share({ files: [file], title: 'Rikken Eindstand', text: 'Bekijk de eindstand!' }); }
+          catch { /* geannuleerd */ }
         } else {
-          // Fallback: download image
-          const url = canvas.toDataURL('image/png');
           const link = document.createElement('a');
           link.download = 'rikken-eindstand.png';
-          link.href = url;
+          link.href = canvas.toDataURL('image/png');
           link.click();
-          alert('Screenshot gedownload! Deel deze in WhatsApp.');
         }
       });
     } catch (err) {
-      console.error('Fout bij maken screenshot:', err);
-      alert('Fout bij maken screenshot');
+      alert('Fout bij delen: ' + err.message);
     }
   };
 
   if (loading) {
     return (
-      <div className="max-w-md mx-auto p-4 min-h-screen page-container">
-        <div className="page-header justify-between">
-          <button onClick={() => navigate('/')} className="back-button">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-          <h1 className="text-2xl font-bold">Eindstand</h1>
-          <div className="w-10"></div>
-        </div>
-        <div className="mt-6 card text-center py-16">
-          <p className="text-gray-600">Laden...</p>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="glass-card rounded-xl p-8 text-center">
+          <span className="material-symbols-outlined text-primary text-4xl animate-spin">refresh</span>
+          <p className="mt-4 text-on-surface-variant font-medium">Laden...</p>
         </div>
       </div>
     );
@@ -250,95 +176,160 @@ function Eindstand({ user, onLogout }) {
 
   if (error) {
     return (
-      <div className="max-w-md mx-auto p-4 min-h-screen page-container">
-        <div className="page-header justify-between">
-          <button onClick={() => navigate('/')} className="back-button">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-          <h1 className="text-2xl font-bold">Eindstand</h1>
-          <div className="w-10"></div>
-        </div>
-        <div className="mt-6 card">
-          <div className="text-center py-8">
-            <p className="text-red-600 font-semibold mb-4">Fout bij laden eindstand</p>
-            <p className="text-gray-600 text-sm mb-4">{error}</p>
-            <button onClick={() => navigate('/')} className="btn-primary">
-              Terug naar Home
-            </button>
-          </div>
+      <div className="min-h-screen flex items-center justify-center px-6">
+        <div className="glass-card rounded-xl p-8 text-center max-w-sm w-full">
+          <span className="material-symbols-outlined text-error text-4xl">error</span>
+          <p className="mt-4 font-semibold text-on-surface">Fout bij laden</p>
+          <p className="text-sm text-on-surface-variant mt-2 mb-6">{error}</p>
+          <button onClick={() => navigate('/')} className="btn-primary w-full">Terug naar Home</button>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="max-w-md mx-auto p-6 min-h-screen page-container">
-      {/* Header */}
-      <div className="page-header justify-between">
-        <button onClick={() => navigate('/')} className="back-button">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-        <h1 className="text-2xl font-bold">Eindstand</h1>
-        <div className="w-10"></div>
-      </div>
+  const winner = eindstand[0];
+  const second = eindstand[1];
+  const third = eindstand[2];
 
-      {/* Resultaat (voor screenshot) */}
-      <div ref={resultaatRef} className="mt-6 bg-white p-6 rounded-lg shadow-lg">
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-rikken-blue mb-1">
-            🏁 Eindstand 🚀
-          </h2>
-          {datum && (
-            <p className="text-sm text-gray-600">
-              {formatDatum(datum)}
-            </p>
-          )}
+  return (
+    <div className="min-h-screen pb-32 text-on-surface" style={{ background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2f1 50%, #e0f7fa 100%)' }}>
+      {/* TopAppBar */}
+      <header className="top-nav">
+        <button onClick={() => navigate('/')} className="text-indigo-700 active:scale-95 transition-transform">
+          <span className="material-symbols-outlined">arrow_back</span>
+        </button>
+        <h1 className="text-xl font-bold bg-gradient-to-r from-[#3953bd] to-[#72489e] bg-clip-text text-transparent">
+          Rikken Score
+        </h1>
+        <div className="w-6"></div>
+      </header>
+
+      <main className="mt-24 px-6 max-w-[428px] mx-auto" ref={resultaatRef}>
+        {/* Header */}
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center p-4 rounded-full shadow-xl mb-4"
+            style={{ background: 'linear-gradient(135deg, #3953bd, #72489e)' }}>
+            <span className="material-symbols-outlined text-white text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>emoji_events</span>
+          </div>
+          <h2 className="text-3xl font-bold tracking-tight text-on-surface">Eindstand</h2>
+          <p className="text-on-surface-variant text-sm mt-1 font-medium opacity-70">{formatDatum(datum)}</p>
         </div>
 
         {/* Podium */}
-        <div className="space-y-3">
-          {eindstand.map((speler, index) => (
-            <div
-              key={speler.avond_speler_id}
-              className={`flex items-center justify-between p-4 rounded-xl shadow-sm ${index === 0 ? 'bg-yellow-400' :
-                index === 1 ? 'bg-gray-300' :
-                  index === 2 ? 'bg-orange-400' :
-                    'bg-gray-100'
-                }`}
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">
-                  {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`}
-                </span>
-                <span className="font-bold text-lg">{speler.naam}</span>
+        {eindstand.length >= 3 && (
+          <div className="flex items-end justify-center gap-2 mb-12 h-64">
+            {/* 2nd */}
+            {second && (
+              <div className="flex flex-col items-center w-24">
+                <div className="relative mb-3">
+                  <div className="w-16 h-16 rounded-full border-4 border-surface-container-high shadow-lg flex items-center justify-center text-white font-bold text-lg bg-gradient-to-br from-slate-400 to-slate-600">
+                    {getInitials(second.naam)}
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 bg-surface-container-highest text-on-surface-variant w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold">2</div>
+                </div>
+                <div className="glass-card w-full h-32 rounded-t-xl flex flex-col items-center justify-start pt-4 shadow-[0_12px_40px_rgba(57,83,189,0.04)]">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant truncate px-2">{second.naam}</span>
+                  <span className="text-xl font-bold text-secondary mt-1">{second.totaal_punten}</span>
+                </div>
               </div>
-              <span className="font-bold text-xl">{speler.totaal_punten}</span>
-            </div>
-          ))}
+            )}
+
+            {/* 1st */}
+            {winner && (
+              <div className="flex flex-col items-center w-28 scale-110">
+                <div className="relative mb-3">
+                  <div className="absolute -top-6 left-1/2 -translate-x-1/2">
+                    <span className="material-symbols-outlined text-yellow-500 animate-bounce" style={{ fontVariationSettings: "'FILL' 1" }}>workspace_premium</span>
+                  </div>
+                  <div className="w-20 h-20 rounded-full border-4 border-yellow-400 shadow-2xl ring-4 ring-yellow-400/20 flex items-center justify-center text-white font-bold text-xl"
+                    style={{ background: 'linear-gradient(135deg, #3953bd, #72489e)' }}>
+                    {getInitials(winner.naam)}
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 bg-yellow-400 text-on-primary w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shadow-md">1</div>
+                </div>
+                <div className="w-full h-40 rounded-t-2xl flex flex-col items-center justify-start pt-6 shadow-2xl"
+                  style={{ background: 'linear-gradient(135deg, #3953bd, #72489e)' }}>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-white/80 truncate px-2">{winner.naam}</span>
+                  <span className="text-3xl font-bold text-white mt-1">{winner.totaal_punten}</span>
+                </div>
+              </div>
+            )}
+
+            {/* 3rd */}
+            {third && (
+              <div className="flex flex-col items-center w-24">
+                <div className="relative mb-3">
+                  <div className="w-16 h-16 rounded-full border-4 border-surface-container-high shadow-lg flex items-center justify-center text-white font-bold text-lg bg-gradient-to-br from-orange-400 to-orange-600">
+                    {getInitials(third.naam)}
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 bg-surface-container-low text-on-surface-variant w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold">3</div>
+                </div>
+                <div className="glass-card w-full h-24 rounded-t-xl flex flex-col items-center justify-start pt-4 shadow-[0_12px_40px_rgba(57,83,189,0.04)]">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant truncate px-2">{third.naam}</span>
+                  <span className="text-xl font-bold text-secondary mt-1">{third.totaal_punten}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Scoreboard Table */}
+        <section className="glass-card rounded-xl p-6 shadow-[0_12px_40px_rgba(57,83,189,0.06)] mb-8">
+          <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-on-surface-variant mb-6 flex items-center gap-2">
+            <span className="material-symbols-outlined text-xs">format_list_numbered</span>
+            Volledige Uitslag
+          </h3>
+          <div className="space-y-3">
+            {eindstand.map((speler, index) => (
+              <div
+                key={speler.avond_speler_id}
+                className={`flex items-center justify-between p-3 rounded-md ${index === 0 ? 'bg-primary-fixed/30' : ''}`}
+              >
+                <div className="flex items-center gap-4">
+                  <span className={`text-xs font-bold w-4 ${index === 0 ? 'text-primary' : 'text-on-surface-variant'}`}>
+                    {index + 1}
+                  </span>
+                  <span className={`font-${index === 0 ? 'semibold' : 'medium'} text-on-surface`}>{speler.naam}</span>
+                </div>
+                <span className={`text-lg font-bold ${index === 0 ? 'text-primary' : 'text-on-surface'}`}>
+                  {speler.totaal_punten}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      </main>
+
+      {/* Action Buttons */}
+      <div className="px-6 max-w-[428px] mx-auto flex flex-col gap-4 mb-12">
+        <button
+          onClick={() => navigate('/nieuwe-avond')}
+          className="btn-primary text-lg shadow-xl"
+        >
+          <span className="material-symbols-outlined">refresh</span>
+          Nieuwe Avond
+        </button>
+        <button onClick={handleDelen} className="btn-secondary text-lg">
+          <span className="material-symbols-outlined">share</span>
+          Delen
+        </button>
+      </div>
+
+      {/* BottomNavBar */}
+      <nav className="bottom-nav">
+        <div className="nav-item-active">
+          <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>leaderboard</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest mt-1">Scoreboard</span>
         </div>
-      </div>
-
-      {/* Acties */}
-      <div className="mt-6 space-y-3">
-        <button
-          onClick={handleWhatsAppShare}
-          className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-4 px-8 rounded-2xl shadow-button hover:shadow-soft hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2 text-lg"
-        >
-          <span>📱</span>
-          Deel via WhatsApp
-        </button>
-
-        <button
-          onClick={() => navigate('/')}
-          className="w-full btn-primary"
-        >
-          Terug naar Home
-        </button>
-      </div>
+        <div className="nav-item cursor-pointer" onClick={() => navigate('/analytics')}>
+          <span className="material-symbols-outlined">history</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest mt-1">History</span>
+        </div>
+        <div className="nav-item cursor-pointer" onClick={() => navigate('/spel-settings')}>
+          <span className="material-symbols-outlined">settings</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest mt-1">Settings</span>
+        </div>
+      </nav>
     </div>
   );
 }

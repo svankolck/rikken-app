@@ -431,9 +431,9 @@ function Spelavond() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-5xl mb-3">🎲</div>
-          <p className="text-gray-500">Laden...</p>
+        <div className="glass-card rounded-xl p-8 text-center">
+          <span className="material-symbols-outlined text-primary text-4xl" style={{ animation: 'spin 1s linear infinite' }}>refresh</span>
+          <p className="mt-4 text-on-surface-variant font-medium">Laden...</p>
         </div>
       </div>
     );
@@ -441,8 +441,11 @@ function Spelavond() {
 
   if (!avond) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-500">Spelavond niet gevonden.</p>
+      <div className="min-h-screen flex items-center justify-center px-6">
+        <div className="glass-card rounded-xl p-8 text-center">
+          <span className="material-symbols-outlined text-error text-4xl">error</span>
+          <p className="mt-4 text-on-surface-variant">Spelavond niet gevonden.</p>
+        </div>
       </div>
     );
   }
@@ -510,24 +513,25 @@ function Spelavond() {
   );
 
   return (
-    <div className="max-w-md mx-auto p-4 pb-8 page-container">
+    <div className="min-h-screen pb-8 text-on-surface">
 
       {/* Modal: Deler kiezen */}
       {heeftGeenDeler && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }}>
+          <div className="glass-card-strong rounded-xl shadow-2xl max-w-md w-full p-8">
             <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-gradient-main rounded-full mx-auto mb-4 flex items-center justify-center">
-                <span className="text-3xl">🎴</span>
+              <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center"
+                style={{ background: 'linear-gradient(135deg, #3953bd, #72489e)' }}>
+                <span className="material-symbols-outlined text-white text-3xl">style</span>
               </div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Wie deelt eerst?</h2>
-              <p className="text-gray-600 text-sm">Kies wie er begint met delen.</p>
+              <h2 className="text-2xl font-bold text-on-surface mb-2">Wie deelt eerst?</h2>
+              <p className="text-on-surface-variant text-sm">Kies wie er begint met delen.</p>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {actieveSpelers.map(speler => (
                 <button key={speler.avond_speler_id}
                   onClick={() => handleSetStartDeler(speler.avond_speler_id)}
-                  className="w-full py-3 px-4 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold rounded-xl shadow-lg transition-all">
+                  className="btn-primary w-full">
                   {speler.naam}
                 </button>
               ))}
@@ -537,37 +541,30 @@ function Spelavond() {
       )}
 
       {/* Header */}
-      <div className="page-header justify-between">
-        <div className="flex items-center">
-          <button onClick={() => navigate('/')} className="back-button">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-          </button>
-          <h1 className="text-xl font-bold">{formatDatum(avond.datum)}</h1>
-        </div>
-        <div className="flex items-center gap-2">
+      <header className="top-nav">
+        <button onClick={() => navigate('/')} className="text-indigo-700 active:scale-95 transition-transform">
+          <span className="material-symbols-outlined">arrow_back</span>
+        </button>
+        <h1 className="text-base font-bold text-on-surface">{formatDatum(avond.datum)}</h1>
+        <div className="flex items-center gap-1">
           <button onClick={() => setShowSettings(!showSettings)}
-            className="w-10 h-10 rounded-full bg-white text-gray-800 flex items-center justify-center hover:bg-gray-100 transition shadow-sm border border-gray-200">
-            <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
-              <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="currentColor" strokeWidth="2" />
-              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" strokeWidth="2" />
-            </svg>
+            className="w-9 h-9 rounded-full flex items-center justify-center text-indigo-700 hover:bg-indigo-50 transition">
+            <span className="material-symbols-outlined text-xl">settings</span>
           </button>
           <button onClick={() => setShowEditMode(!showEditMode)}
-            className="w-10 h-10 rounded-full bg-white text-gray-800 flex items-center justify-center hover:bg-gray-100 transition shadow-sm border border-gray-200">
-            <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            className="w-9 h-9 rounded-full flex items-center justify-center text-indigo-700 hover:bg-indigo-50 transition">
+            <span className="material-symbols-outlined text-xl">edit</span>
           </button>
           <button onClick={handleKlaar}
-            className="w-10 h-10 rounded-full bg-white text-gray-800 flex items-center justify-center hover:bg-gray-100 transition shadow-sm border border-gray-200 text-xl font-bold">
-            ✓
+            className="w-9 h-9 rounded-full flex items-center justify-center text-indigo-700 hover:bg-indigo-50 transition">
+            <span className="material-symbols-outlined text-xl">check_circle</span>
           </button>
         </div>
-      </div>
+      </header>
+      <div className="pt-20 px-4 max-w-[428px] mx-auto">
 
       {/* Scorebord */}
-      <div className="mt-3 card">
+      <div className="mt-3 glass-card rounded-xl p-4 shadow-[0_12px_40px_rgba(57,83,189,0.06)]">
         {/* Speler bolletjes + totaal scores */}
         <div className="flex items-start gap-2 mb-3">
           <div className="w-7 flex-shrink-0"></div>
@@ -631,7 +628,7 @@ function Spelavond() {
 
       {/* Settings panel */}
       {showSettings && (
-        <div className="mt-3 card border-2 border-rikken-accent">
+        <div className="mt-3 glass-card rounded-xl p-4 shadow-[0_12px_40px_rgba(57,83,189,0.06)] border border-primary/20">
           <div className="flex items-center justify-between mb-3 pb-2 border-b">
             <h3 className="font-semibold text-gray-800">Instellingen</h3>
             <button onClick={() => setShowSettings(false)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
@@ -639,7 +636,7 @@ function Spelavond() {
           <div className="flex gap-2 mb-3">
             {['spelers', 'deler', 'volgorde'].map(tab => (
               <button key={tab} onClick={() => setSettingsTab(tab)}
-                className={`px-3 py-1 text-sm rounded-lg capitalize ${settingsTab === tab ? 'bg-gradient-main text-white' : 'text-gray-600 bg-gray-100'}`}>
+                className={`px-3 py-1 text-sm rounded-lg capitalize ${settingsTab === tab ? 'gradient-primary text-white' : 'text-gray-600 bg-gray-100'}`}>
                 {tab}
               </button>
             ))}
@@ -679,7 +676,7 @@ function Spelavond() {
                 {actieveSpelers.map(speler => (
                   <button key={speler.avond_speler_id}
                     onClick={() => handleSetStartDeler(speler.avond_speler_id)}
-                    className={`py-2 text-sm rounded-lg ${avond.start_deler === speler.avond_speler_id ? 'bg-gradient-main text-white font-bold' : 'bg-gray-100 text-gray-700'}`}>
+                    className={`py-2 text-sm rounded-lg ${avond.start_deler === speler.avond_speler_id ? 'gradient-primary text-white font-bold' : 'bg-gray-100 text-gray-700'}`}>
                     {speler.naam}
                   </button>
                 ))}
@@ -705,9 +702,9 @@ function Spelavond() {
                   <span className="text-sm font-medium">{index + 1}. {speler.naam}</span>
                   <div className="flex gap-1">
                     <button onClick={() => moveSpelerUp(index)} disabled={index === 0}
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center ${index === 0 ? 'bg-gray-200 text-gray-400' : 'bg-gradient-main text-white'}`}>↑</button>
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center ${index === 0 ? 'bg-gray-200 text-gray-400' : 'gradient-primary text-white'}`}>↑</button>
                     <button onClick={() => moveSpelerDown(index)} disabled={index === actieveSpelers.length - 1}
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center ${index === actieveSpelers.length - 1 ? 'bg-gray-200 text-gray-400' : 'bg-gradient-main text-white'}`}>↓</button>
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center ${index === actieveSpelers.length - 1 ? 'bg-gray-200 text-gray-400' : 'gradient-primary text-white'}`}>↓</button>
                   </div>
                 </div>
               ))}
@@ -718,7 +715,7 @@ function Spelavond() {
 
       {/* Edit panel */}
       {showEditMode && (
-        <div className="mt-3 card border-2 border-red-400">
+        <div className="mt-3 glass-card rounded-xl p-4 shadow-[0_12px_40px_rgba(57,83,189,0.06)] border border-error/30">
           <div className="flex items-center justify-between mb-3 pb-2 border-b">
             <h3 className="font-semibold text-gray-800">Rondes bewerken</h3>
             <button onClick={() => setShowEditMode(false)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
@@ -751,7 +748,7 @@ function Spelavond() {
       )}
 
       {/* Beslisboom */}
-      <div className="mt-4 card">
+      <div className="mt-4 glass-card rounded-xl p-4 shadow-[0_12px_40px_rgba(57,83,189,0.06)]">
 
         {/* Stap: Speler kiezen */}
         {beslisboom.stap === 'speler' && (
@@ -1148,6 +1145,7 @@ function Spelavond() {
           </div>
         )}
       </div>
+      </div> {/* pt-20 wrapper */}
     </div>
   );
 }

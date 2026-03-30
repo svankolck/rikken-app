@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Rikken Score - Analytics</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-secondary-fixed-variant": "#2f3aa3",
+              "on-surface": "#141d21",
+              "surface-container-high": "#e0e9ef",
+              "on-tertiary": "#ffffff",
+              "tertiary-fixed-dim": "#dcb8ff",
+              "surface-tint": "#3c55bf",
+              "on-error": "#ffffff",
+              "on-primary-fixed": "#001356",
+              "secondary-container": "#8792fe",
+              "primary-container": "#546cd7",
+              "on-tertiary-fixed-variant": "#5c3187",
+              "surface-dim": "#d2dbe1",
+              "error": "#ba1a1a",
+              "on-surface-variant": "#444653",
+              "on-secondary": "#ffffff",
+              "surface-container-lowest": "#ffffff",
+              "secondary-fixed": "#e0e0ff",
+              "outline": "#757684",
+              "surface-container": "#e6eff5",
+              "surface": "#f4faff",
+              "surface-variant": "#dbe4ea",
+              "inverse-on-surface": "#e9f2f8",
+              "on-tertiary-fixed": "#2c0051",
+              "error-container": "#ffdad6",
+              "on-secondary-container": "#17228f",
+              "primary-fixed": "#dde1ff",
+              "background": "#f4faff",
+              "on-error-container": "#93000a",
+              "tertiary-container": "#8c61b9",
+              "on-primary-container": "#fffbff",
+              "outline-variant": "#c5c5d5",
+              "primary-fixed-dim": "#b9c3ff",
+              "on-primary": "#ffffff",
+              "surface-container-low": "#ecf5fb",
+              "on-primary-fixed-variant": "#1f3ba6",
+              "secondary-fixed-dim": "#bdc2ff",
+              "tertiary": "#72489e",
+              "primary": "#3953bd",
+              "inverse-surface": "#293236",
+              "tertiary-fixed": "#f0dbff",
+              "on-tertiary-container": "#fffbff",
+              "on-secondary-fixed": "#000767",
+              "surface-bright": "#f4faff",
+              "on-background": "#141d21",
+              "inverse-primary": "#b9c3ff",
+              "secondary": "#4953bc",
+              "surface-container-highest": "#dbe4ea"
+            },
+            fontFamily: {
+              "headline": ["Inter"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      body {
+        font-family: 'Inter', sans-serif;
+        background: linear-gradient(135deg, #f0f9ff 0%, #ecfeff 50%, #f0fdfa 100%);
+      }
+      .glass-card {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+      }
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="min-h-screen text-on-surface antialiased">
+<!-- Top App Bar -->
+<header class="fixed top-0 w-full z-50 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl no-border shadow-[0_12px_40px_rgba(57,83,189,0.06)] flex items-center justify-between px-6 py-4 w-full">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-indigo-700 dark:text-indigo-400 active:scale-95 transition-transform duration-200 cursor-pointer">arrow_back</span>
+<h1 class="font-sans font-semibold text-lg tracking-tight text-on-surface">Analytics</h1>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-indigo-700 dark:text-indigo-400 active:scale-95 transition-transform duration-200 cursor-pointer">filter_list</span>
+<span class="material-symbols-outlined text-indigo-700 dark:text-indigo-400 active:scale-95 transition-transform duration-200 cursor-pointer">check_circle</span>
+</div>
+</header>
+<main class="pt-24 pb-32 px-6 max-w-[428px] mx-auto space-y-10">
+<!-- Hero Score Visualization (Bento Style) -->
+<section class="space-y-4">
+<div class="flex items-baseline justify-between">
+<h2 class="headline-md font-semibold text-on-surface">Performance</h2>
+<span class="text-label-md font-bold uppercase tracking-widest text-secondary">Season 4</span>
+</div>
+<div class="glass-card rounded-xl p-6 shadow-[0_12px_40px_rgba(57,83,189,0.06)] relative overflow-hidden">
+<div class="relative z-10">
+<p class="text-label-md font-bold uppercase tracking-widest text-primary mb-1">Total Points</p>
+<p class="text-[3.5rem] font-bold leading-none text-primary mb-6">2,840</p>
+<!-- Simplified Line Chart Visual -->
+<div class="h-32 w-full flex items-end gap-1">
+<div class="bg-primary/10 w-full h-12 rounded-t-sm relative group">
+<div class="absolute bottom-0 w-full h-1/2 bg-gradient-to-t from-primary/40 to-primary/10 transition-all group-hover:h-3/4"></div>
+</div>
+<div class="bg-primary/10 w-full h-16 rounded-t-sm relative group">
+<div class="absolute bottom-0 w-full h-[60%] bg-gradient-to-t from-primary/40 to-primary/10 transition-all group-hover:h-3/4"></div>
+</div>
+<div class="bg-primary/10 w-full h-24 rounded-t-sm relative group">
+<div class="absolute bottom-0 w-full h-[80%] bg-gradient-to-t from-primary/40 to-primary/10 transition-all group-hover:h-3/4"></div>
+</div>
+<div class="bg-primary/10 w-full h-20 rounded-t-sm relative group">
+<div class="absolute bottom-0 w-full h-[70%] bg-gradient-to-t from-primary/40 to-primary/10 transition-all group-hover:h-3/4"></div>
+</div>
+<div class="bg-primary/10 w-full h-28 rounded-t-sm relative group">
+<div class="absolute bottom-0 w-full h-[90%] bg-gradient-to-t from-primary/40 to-primary/10 transition-all group-hover:h-3/4"></div>
+</div>
+<div class="bg-primary/10 w-full h-32 rounded-t-sm relative group">
+<div class="absolute bottom-0 w-full h-full bg-gradient-to-t from-primary to-tertiary rounded-t-sm"></div>
+</div>
+</div>
+</div>
+<div class="absolute -right-10 -top-10 w-40 h-40 bg-tertiary/5 rounded-full blur-3xl"></div>
+</div>
+</section>
+<!-- Game Distribution (Asymmetric Grid) -->
+<section class="space-y-4">
+<h2 class="headline-md font-semibold text-on-surface">Game Form</h2>
+<div class="grid grid-cols-2 gap-4">
+<div class="glass-card rounded-xl p-5 col-span-1 flex flex-col justify-between aspect-square">
+<div>
+<span class="material-symbols-outlined text-tertiary mb-2" style="font-variation-settings: 'FILL' 1;">pie_chart</span>
+<p class="text-sm font-medium text-on-surface-variant">Rik</p>
+</div>
+<p class="text-2xl font-bold text-tertiary">42%</p>
+</div>
+<div class="glass-card rounded-xl p-5 col-span-1 flex flex-col justify-between aspect-square">
+<div>
+<span class="material-symbols-outlined text-primary mb-2" style="font-variation-settings: 'FILL' 1;">donut_large</span>
+<p class="text-sm font-medium text-on-surface-variant">Solo</p>
+</div>
+<p class="text-2xl font-bold text-primary">18%</p>
+</div>
+<div class="glass-card rounded-xl p-6 col-span-2 flex items-center justify-between">
+<div class="flex gap-4 items-center">
+<div class="w-12 h-12 rounded-full border-4 border-error/20 border-t-error flex items-center justify-center">
+<span class="text-xs font-bold text-error">24%</span>
+</div>
+<div>
+<p class="text-sm font-bold text-on-surface">Misere</p>
+<p class="text-xs text-on-surface-variant">High risk games</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline-variant">chevron_right</span>
+</div>
+</div>
+</section>
+<!-- Leaderboard Section -->
+<section class="space-y-4">
+<h2 class="headline-md font-semibold text-on-surface">Top Players</h2>
+<div class="space-y-3">
+<!-- Rank 1 -->
+<div class="glass-card rounded-xl p-4 flex items-center gap-4 relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-primary to-tertiary"></div>
+<div class="relative">
+<img class="w-12 h-12 rounded-full bg-surface-container-high object-cover ring-2 ring-error" data-alt="Close-up portrait of a competitive player with focused expression in a professional studio setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8s2sFQyaJ90urqst89OVF5J-PblPFBc3ibyo8XB96Mx3qVjgPwsVS5HGOCG108Wosl5Dl0BCpyr07tkv9cvYji3579Z5ABXhp5xE9iySByza_8RG5eNDQjrDeFkl_hAGUGmF9q0Uh3KEqhIsuPRgMCWr7kHM6X7tnJ_SFEPSL09AgbZ3CYvQ-G1-_3kKcEEoi4TQzNesRdD32Lt5uLpI3XucgKlKDOtcVwmSJaq0rFrwdb-d9PD85y26CS9KZM3q3a2jnVLV2hcA"/>
+<div class="absolute -bottom-1 -right-1 bg-amber-400 text-[10px] font-bold px-1.5 rounded-full text-white border-2 border-white">1</div>
+</div>
+<div class="flex-1">
+<p class="font-bold text-on-surface">Thomas V.</p>
+<p class="text-xs text-on-surface-variant">24 Wins • 88% Form</p>
+</div>
+<div class="text-right">
+<p class="text-lg font-bold text-primary">+452</p>
+</div>
+</div>
+<!-- Rank 2 -->
+<div class="glass-card rounded-xl p-4 flex items-center gap-4">
+<div class="relative">
+<img class="w-12 h-12 rounded-full bg-surface-container-high object-cover" data-alt="Portrait of a young man smiling in a softly lit modern interior background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBwJlMjqCBJE6NuD69s-03J58PT6EQjZqEu9DXx0Ik5Xp-QLd0y9svzAttDeR8Is5iHMj4GdzvZPvoUpDHWVN-CMIFhQ6qgprQMkwCgxLeEGR_FtqcGNIMqowvnzV_E8XsyjByDm_c9hh_eG5E_k9CoWT8XhJv9AOu9za_NqUcYKtC4kDmyGF1N_bNvMkMtIU35CnmD9RieRThOF5EbbHzVFzYwjN3uN-1qgOtIvG5QNCsrj2z84JIp863fQMieuyNNPppOYgwGUgo"/>
+<div class="absolute -bottom-1 -right-1 bg-slate-400 text-[10px] font-bold px-1.5 rounded-full text-white border-2 border-white">2</div>
+</div>
+<div class="flex-1">
+<p class="font-bold text-on-surface">Sarah K.</p>
+<p class="text-xs text-on-surface-variant">19 Wins • 72% Form</p>
+</div>
+<div class="text-right">
+<p class="text-lg font-bold text-on-surface-variant">+318</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Game History -->
+<section class="space-y-4">
+<div class="flex items-center justify-between">
+<h2 class="headline-md font-semibold text-on-surface">Recent Nights</h2>
+<button class="text-sm font-bold text-primary">View All</button>
+</div>
+<div class="space-y-4">
+<!-- Entry 1 -->
+<div class="glass-card rounded-xl p-6 shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<div>
+<p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Friday, Oct 24</p>
+<h3 class="text-lg font-semibold text-on-surface">The Rusty Anchor</h3>
+</div>
+<div class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-tighter">Completed</div>
+</div>
+<div class="flex items-center gap-2 mb-6">
+<div class="flex -space-x-2">
+<img class="w-8 h-8 rounded-full border-2 border-white bg-slate-200" data-alt="Headshot of a friendly man in his 30s with a neat beard" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDGVSPLFECBgCEPxvMkalw3bfeymDH00JQZ41mJETL6YWbu6P5lEcgvb2dOPo0Ube0buPO72Q5a71obCGQl_g0FQm-t2PsYlfdxrKdquyysnKl_d1t0mhNFlFLGtzSijwz3GEweD0Ygn6G2VKpAXsaK2Mc1rXlQp-STSUF34_Vs1r0wmowbEauON0_Q3h40ZqeB_ZmvbTEvU-PcAkal1TiOarxfksaqDmnx6eMnNlSs3o8rJzCSe-TkOJN8tJttyut69E7ZqaBnhT4"/>
+<img class="w-8 h-8 rounded-full border-2 border-white bg-slate-300" data-alt="Profile photo of a woman with glasses and a professional demeanor" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCei35ol-SM7uWnkzH7JcV01iAvxQ6GxpX_DUEDMwr9tSL1WeL4UrcNhlGwixa-Q3P-mhbunwzA6TldD6NPCso1_Yb5rh9ZvTAniIR1B18suyvbNmhcAGHvOOHpHP7GeXOTEBH6p5jLWNH-Jhw6H4j3_rEdVSfj_eS-EA2WgEY8MiKcJM3uLdiX6hJrQWpd_tsIlFBWN0TYMTCL6ZpfWagHRlEdhSd11kyjcSOrgObBPRkkaBXMHWSqxLqOJ8PG-rbg7U8QHfautwY"/>
+<img class="w-8 h-8 rounded-full border-2 border-white bg-slate-400" data-alt="Candid shot of a young person laughing in a casual setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDV0HZVn4Jfs-4HyU_ZnxDofWe0ZjlGayJTDE7acocrLm36r-rWVmr198QA2H7NaZJqtZ188F_F2nFa9vW6AQvVyA99AK4oxckPjag2JCLqgkuDHLvKgA8auRD4v2v_ZNnROv5JdHAS037pPL0f1ZkllNQe2aGV576HZksQbIXMy0Y4-pzlxiubXwKN5aJI2Q8nnmpQ607qnkJssIMf1RY5ta56sxy5jqaJ2YRIMMtYbn_0oi8PjmLkVzEYNyoChLVAghTz8iwTCQI"/>
+<div class="w-8 h-8 rounded-full border-2 border-white bg-surface-container-high flex items-center justify-center text-[10px] font-bold text-on-surface-variant">+1</div>
+</div>
+<span class="text-xs text-on-surface-variant">4 Players</span>
+</div>
+<div class="flex items-center justify-between pt-4 border-t border-surface-variant">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">emoji_events</span>
+<p class="text-sm font-medium">Winner: <span class="font-bold">Thomas V.</span></p>
+</div>
+<p class="text-sm font-bold text-primary">+82 pts</p>
+</div>
+</div>
+<!-- Entry 2 -->
+<div class="glass-card rounded-xl p-6 shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<div>
+<p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Monday, Oct 20</p>
+<h3 class="text-lg font-semibold text-on-surface">Sarah's Lounge</h3>
+</div>
+<div class="bg-surface-container-high text-on-surface-variant px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-tighter">Casual</div>
+</div>
+<div class="flex items-center gap-2 mb-6">
+<div class="flex -space-x-2">
+<img class="w-8 h-8 rounded-full border-2 border-white bg-slate-200" data-alt="High quality avatar of a stylish person in a city street" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDSyqUJjJ8lVaGenzX5I1ZDQ8IlmLoDEDjC6eRFc1_GPnUQbFIxehctM8HRqq3E4m1LJjFOxYI9fJ8hCb7f19swc8l1g-Wp7n_o09rtqXsnibn_n4pqYbnDYpeTLk-ZRO_qmrdOXOXt-NMRU0g1qhgJPbEom3WntX21TwDFiBJENHADGiQyhviYnMuQeDi7mBQmUgZCWaFyA4BumAID7SB6EtoUNfe8rh_nxZ6a1dGFkIa-5Av6_Qn31wG_kjmLYcHHNOrcrAnltgQ"/>
+<img class="w-8 h-8 rounded-full border-2 border-white bg-slate-300" data-alt="Minimalist artistic portrait with soft bokeh background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCL7FfN00oPQPpwSJbVskxV3aojzOA545i0uYE2tJFIpzRrikd-OrJWKX5YH8XamDiBY3KBdXk5fnXvV31xb0erHvFnyoTfggSdN6pJT5WFWPMc1ImaejlfEY1TbMNaS6DQsD7tiV5rt0C58PMPxYxmYzFnTLYTQcASeUVZ386zxvdyoJuEN0UeJ_WdUYkN5o2X-uDzbqYQMAeL2KVCXS-dquP9KImJpb6i-vbMsi4MfSSTYk_F_-EbqaEaubyy3Xx80lNvAqXSY_0"/>
+<img class="w-8 h-8 rounded-full border-2 border-white bg-slate-400" data-alt="Warmly lit portrait of an older gentleman with a kind smile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC2bl3EHvNMW7r430bYMxKH_K5NGs4W_1SZQbgxtrEJagyQnsYl3ImRAIaD-kLTQmvdihlhIB-oi627eLGtcueMqOYQ5XBCUIacsZr1hTHrzd9afwTfNwNt_0NnDbxS0lAQhVLUQiP3lsb6fITqTYHc9CQdITARdFFHObVgFdwYPKJ5s4t53PTyXaIHA5yuHZQa-LWiuvJoU6yzsflfTR0jj9pJ2uPso-Ltdf-Q3roDcGm60_-uD7ta4IZRsMTEwHSQrmTyUAqjWBA"/>
+</div>
+<span class="text-xs text-on-surface-variant">3 Players</span>
+</div>
+<div class="flex items-center justify-between pt-4 border-t border-surface-variant">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">emoji_events</span>
+<p class="text-sm font-medium">Winner: <span class="font-bold">Sarah K.</span></p>
+</div>
+<p class="text-sm font-bold text-primary">+54 pts</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl rounded-t-[3rem] z-50 shadow-2xl no-border">
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-6 py-2 hover:text-indigo-600 active:scale-[0.98] transition-all duration-200" href="#">
+<span class="material-symbols-outlined mb-1">leaderboard</span>
+<span class="text-[10px] font-bold uppercase tracking-widest">Scoreboard</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-gradient-to-br from-[#3953bd] to-[#72489e] text-white rounded-2xl px-6 py-2 active:scale-[0.98] transition-all duration-200" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">history</span>
+<span class="text-[10px] font-bold uppercase tracking-widest">History</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-6 py-2 hover:text-indigo-600 active:scale-[0.98] transition-all duration-200" href="#">
+<span class="material-symbols-outlined mb-1">settings</span>
+<span class="text-[10px] font-bold uppercase tracking-widest">Settings</span>
+</a>
+</nav>
+</body></html>
