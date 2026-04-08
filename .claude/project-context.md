@@ -125,10 +125,29 @@ De score berekening zit ingebakken in `Spelavond.jsx` (in `berekenScoreboard` en
 - `schoppen_vrouw_id` en `laatste_slag_id` krijgen elk `gemaakt` punten
 - Als dezelfde speler beide: 4× punten
 
-**Meerdere (bijv. Allemaal Rik):**
-- Meerdere rondes tegelijk, één per deelnemer
-- Gemaakt: anderen krijgen punten
-- Nat: deelnemer krijgt 3× straf
+**Meerdere (bijv. Misere, Piek):**
+
+Meerdere spelers spelen tegelijk hetzelfde spel, elk voor zichzelf (altijd solo, nooit met maat). Per deelnemer wordt één aparte rij in `rondes` opgeslagen, allemaal met **hetzelfde `ronde_nummer`**. De code detecteert dit via `rows.length > 1` bij het groeperen op ronde_nummer.
+
+Pot-berekening:
+```
+X = aantal deelnemers
+Y = punten_settings.gemaakt van het gekozen spel
+Pot = X * 3 * Y
+
+Nat deelnemers:       3 * Y punten (nat straf)
+Resterende pot:       Pot - (nat_count * 3 * Y)
+Niet-gemaakt spelers: nat deelnemers + niet-deelnemers
+  → elk: resterende_pot / niet_gemaakt_spelers.length
+Gemaakt deelnemers:   0 punten
+```
+
+Voorbeeld: X=2, Y=40 (Misere), S1 gemaakt, S2 nat, S3+S4 niet deelnemer:
+- Pot=240, S2 nat straf=120, resterend=120, niet-gemaakt: S2+S3+S4=3 → elk 40
+- S1:0, S2:160, S3:40, S4:40
+
+**Let op:** `avond.rondes.length` ≠ aantal gespeelde rondes bij Meerdere.
+Gebruik `avond.aantalRondes` (unieke ronde_nummers) voor ronde-nummering en dealer-rotatie.
 
 ## Dealer Rotatie & Stilzitters
 
@@ -182,7 +201,13 @@ docker restart rikken-frontend
 ## Bekende Issues / TODO
 
 - `src/components/spelavond/`, `src/hooks/`, en `src/utils/scoreCalculator.js` / `dealerRotation.js` / `validators.js` zijn dead code (waren bedoeld voor refactor die niet doorgezet is)
-- `Spelavond.jsx` is een monoliet van ~1150 regels — kandidaat voor toekomstige refactor
+- `Spelavond.jsx` is een monoliet van ~1200 regels — kandidaat voor toekomstige refactor
+- Edit-mode (`loadRondesDetails`) toont Meerdere-rondes als losse rijen per deelnemer i.p.v. samengevat — cosmetic bug, niet kritisch
+
+## Bekende valkuilen
+
+- **Supabase joins** (bijv. `locaties(straat)`) werken niet als de foreign key relatie niet gedefinieerd is in het schema. Doe altijd aparte queries voor gerelateerde tabellen. Zie `Home.jsx` en `NieuweAvond.jsx` als voorbeeld van de correcte aanpak.
+- **`avond.rondes`** bevat alle DB-rijen, inclusief meerdere rijen per Meerdere-ronde. Gebruik **`avond.aantalRondes`** (unieke `ronde_nummer` count) voor alles wat rondes telt (ronde-nummering, dealer-rotatie, scorebord-kolommen).
 
 ## Laatste Update
-8 april 2026 - Project context gesynchroniseerd met werkelijke codebase
+8 april 2026 - Meerdere scoring gedocumenteerd, pot-formule + valkuilen toegevoegd
