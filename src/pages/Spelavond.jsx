@@ -596,64 +596,70 @@ function Spelavond() {
 
       {/* Scorebord */}
       <div className="mt-3 glass-card rounded-xl p-4 shadow-[0_12px_40px_rgba(57,83,189,0.06)]">
-        {/* Speler bolletjes + totaal scores */}
-        <div className="flex items-start gap-2 mb-3">
-          <div className="w-7 flex-shrink-0"></div>
-          <div className="grid gap-1 flex-1" style={{ gridTemplateColumns: `repeat(${alleSpelers.length}, 1fr)` }}>
-            {alleSpelers.map((speler) => {
-              const laatsteScore = scorebord[speler.avond_speler_id]?.[rondeNummer - 1] || 0;
-              const displayNaam = alleSpelers.length > 4
-                ? speler.naam.charAt(0).toUpperCase()
-                : speler.naam.split(' ')[0];
-              const isStilzitter = stilzitters.includes(speler.avond_speler_id);
-              const isDeler = huidigeDeler === speler.avond_speler_id;
-              const isInactief = !speler.actief;
-              const heeftVerdubbelaar = speler.verdubbelaar === 1;
+        {/* Header + history in één scrollbare container zodat breedte altijd gelijk is */}
+        <div className="max-h-60 overflow-y-auto">
+          {/* Sticky header: speler bolletjes + totaalscores */}
+          <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-sm pb-2 mb-1">
+            <div className="flex items-start gap-2">
+              <div className="w-7 flex-shrink-0"></div>
+              <div className="grid gap-1 flex-1" style={{ gridTemplateColumns: `repeat(${alleSpelers.length}, 1fr)` }}>
+                {alleSpelers.map((speler) => {
+                  const laatsteScore = scorebord[speler.avond_speler_id]?.[rondeNummer - 1] || 0;
+                  const displayNaam = alleSpelers.length > 4
+                    ? speler.naam.charAt(0).toUpperCase()
+                    : speler.naam.split(' ')[0];
+                  const isStilzitter = stilzitters.includes(speler.avond_speler_id);
+                  const isDeler = huidigeDeler === speler.avond_speler_id;
+                  const isInactief = !speler.actief;
+                  const heeftVerdubbelaar = speler.verdubbelaar === 1;
 
+                  return (
+                    <div key={speler.avond_speler_id} className={`text-center ${isInactief ? 'opacity-40' : ''}`}>
+                      <div className={`
+                        font-bold py-2 px-1 rounded-xl text-sm shadow-sm mb-1 mx-0.5
+                        ${isInactief ? 'bg-gray-300 text-white' :
+                          isStilzitter ? 'bg-orange-400 text-white' :
+                          'bg-gradient-to-br from-purple-500 to-indigo-600 text-white'}
+                        ${heeftVerdubbelaar && !isInactief ? 'border-2 border-red-500' : ''}
+                      `}>
+                        <span className={isDeler && !isInactief ? 'font-extrabold underline' : ''}>{displayNaam}</span>
+                      </div>
+                      <div className={`text-lg font-bold ${isInactief ? 'text-gray-400' : 'text-gray-900'}`}>
+                        {laatsteScore}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="border-t mt-1" />
+          </div>
+
+          {/* Rondes geschiedenis */}
+          <div className="space-y-1">
+            {laatsteRondes.map(ronde => {
+              const stilzittersRonde = getStilzittersVoorRonde(ronde.ronde_nummer);
+              const isVerdubbeld = ronde.verdubbeld === true || ronde.verdubbeld === 1;
               return (
-                <div key={speler.avond_speler_id} className={`text-center ${isInactief ? 'opacity-40' : ''}`}>
-                  <div className={`
-                    font-bold py-2 px-1 rounded-xl text-sm shadow-sm mb-1 mx-0.5
-                    ${isInactief ? 'bg-gray-300 text-white' :
-                      isStilzitter ? 'bg-orange-400 text-white' :
-                      'bg-gradient-to-br from-purple-500 to-indigo-600 text-white'}
-                    ${heeftVerdubbelaar && !isInactief ? 'ring-2 ring-red-500' : ''}
-                  `}>
-                    <span className={isDeler && !isInactief ? 'font-extrabold underline' : ''}>{displayNaam}</span>
+                <div key={ronde.ronde_nummer} className="flex items-center gap-2">
+                  <div className={`w-7 text-center text-xs font-semibold flex-shrink-0 rounded-lg py-0.5 ${isVerdubbeld ? 'border-2 border-red-400 bg-red-50 text-red-600' : 'text-gray-600'}`}>
+                    {ronde.ronde_nummer}
                   </div>
-                  <div className={`text-lg font-bold ${isInactief ? 'text-gray-400' : 'text-gray-900'}`}>
-                    {laatsteScore}
+                  <div className="grid gap-1 flex-1" style={{ gridTemplateColumns: `repeat(${alleSpelers.length}, 1fr)` }}>
+                    {alleSpelers.map(speler => {
+                      const wasStilzitter = stilzittersRonde.includes(speler.avond_speler_id);
+                      return (
+                        <div key={`${ronde.ronde_nummer}-${speler.avond_speler_id}`}
+                          className={`text-center text-xs rounded py-0.5 ${!speler.actief ? 'text-gray-300' : wasStilzitter ? 'bg-gray-100 text-gray-400' : 'text-gray-700'}`}>
+                          {scorebord[speler.avond_speler_id]?.[ronde.ronde_nummer] || 0}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );
             })}
           </div>
-        </div>
-
-        {/* Rondes geschiedenis */}
-        <div className="max-h-44 overflow-y-auto border-t pt-2 space-y-1">
-          {laatsteRondes.map(ronde => {
-            const stilzittersRonde = getStilzittersVoorRonde(ronde.ronde_nummer);
-            const isVerdubbeld = ronde.verdubbeld === true || ronde.verdubbeld === 1;
-            return (
-              <div key={ronde.ronde_nummer} className="flex items-center gap-2">
-                <div className={`w-7 text-center text-xs font-semibold text-gray-600 flex-shrink-0 rounded-lg py-0.5 ${isVerdubbeld ? 'ring-2 ring-red-400 bg-red-50 text-red-600' : ''}`}>
-                  {ronde.ronde_nummer}
-                </div>
-                <div className="grid gap-1 flex-1" style={{ gridTemplateColumns: `repeat(${alleSpelers.length}, 1fr)` }}>
-                  {alleSpelers.map(speler => {
-                    const wasStilzitter = stilzittersRonde.includes(speler.avond_speler_id);
-                    return (
-                      <div key={`${ronde.ronde_nummer}-${speler.avond_speler_id}`}
-                        className={`text-center text-xs rounded py-0.5 ${!speler.actief ? 'text-gray-300' : wasStilzitter ? 'bg-gray-100 text-gray-400' : 'text-gray-700'}`}>
-                        {scorebord[speler.avond_speler_id]?.[ronde.ronde_nummer] || 0}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
         </div>
       </div>
 
