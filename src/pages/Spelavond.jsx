@@ -532,6 +532,7 @@ function Spelavond() {
     return avond.spelers.find(s => s.avond_speler_id === avondSpelerId)?.naam || 'Onbekend';
   };
 
+  const isAfgelopen = avond.status === 'afgelopen';
   const huidigeDeler = getHuidigeDeler();
   const stilzitters = getStilzitters();
   const spelendeSpelers = actieveSpelers.filter(s => !stilzitters.includes(s.avond_speler_id));
@@ -583,10 +584,12 @@ function Spelavond() {
             className="w-9 h-9 rounded-full flex items-center justify-center text-indigo-700 hover:bg-indigo-50 transition">
             <span className="material-symbols-outlined text-xl">edit</span>
           </button>
-          <button onClick={handleKlaar}
-            className="w-9 h-9 rounded-full flex items-center justify-center text-indigo-700 hover:bg-indigo-50 transition">
-            <span className="material-symbols-outlined text-xl">check_circle</span>
-          </button>
+          {!isAfgelopen && (
+            <button onClick={handleKlaar}
+              className="w-9 h-9 rounded-full flex items-center justify-center text-indigo-700 hover:bg-indigo-50 transition">
+              <span className="material-symbols-outlined text-xl">check_circle</span>
+            </button>
+          )}
         </div>
       </header>
       <div className="pt-20 px-4 max-w-[428px] mx-auto">
@@ -775,8 +778,17 @@ function Spelavond() {
         </div>
       )}
 
-      {/* Beslisboom */}
+      {/* Beslisboom — alleen zichtbaar als avond actief is */}
       <div className="mt-4 glass-card rounded-xl p-4 shadow-[0_12px_40px_rgba(57,83,189,0.06)]">
+      {isAfgelopen ? (
+        <div className="flex items-center gap-3 py-2">
+          <span className="material-symbols-outlined text-gray-400 text-2xl">lock</span>
+          <div>
+            <p className="font-semibold text-gray-600 text-sm">Avond afgesloten</p>
+            <p className="text-xs text-gray-400">Deze avond is beëindigd en kan niet meer worden bewerkt.</p>
+          </div>
+        </div>
+      ) : (<>
 
         {/* Stap: Speler kiezen */}
         {beslisboom.stap === 'speler' && (
@@ -1172,7 +1184,8 @@ function Spelavond() {
             </div>
           </div>
         )}
-      </div>
+      </>)}{/* einde isAfgelopen ? ... : ... */}
+      </div>{/* einde beslisboom card */}
       </div> {/* pt-20 wrapper */}
     </div>
   );
