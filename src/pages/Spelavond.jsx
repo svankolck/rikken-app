@@ -29,8 +29,10 @@ function Spelavond() {
       board[score.avond_speler_id][score.ronde_nummer] += score.punten;
     });
 
-    // Bereken cumulatief
-    const maxRonde = avondData.rondes.length || 0;
+    // Bereken cumulatief — gebruik hoogste ronde_nummer uit scores, niet array.length
+    // (Meerdere rondes hebben meerdere rijen met hetzelfde ronde_nummer)
+    const uniekeNrs = [...new Set(avondData.scores.map(s => s.ronde_nummer))];
+    const maxRonde = uniekeNrs.length > 0 ? Math.max(...uniekeNrs) : 0;
     avondData.spelers.forEach(speler => {
       let totaal = 0;
       for (let ronde = 1; ronde <= maxRonde; ronde++) {
@@ -145,18 +147,36 @@ function Spelavond() {
             uitdagers.forEach(sid => scores.push({ avond_speler_id: sid, ronde_nummer: rondeNr, punten: finalPoints }));
           }
         } else {
-          rows.forEach(ronde => {
-            const multiplier = ronde.verdubbeld ? 2 : 1;
-            const puntenConfig = ronde.punten;
-            if (ronde.gemaakt) {
-              const anderen = actieveSpelersInRonde.filter(sid => sid !== ronde.uitdager_id);
-              const finalPoints = Math.round((puntenConfig.gemaakt || 5) * multiplier);
-              anderen.forEach(sid => scores.push({ avond_speler_id: sid, ronde_nummer: rondeNr, punten: finalPoints }));
-            } else {
-              const finalPoints = Math.round((puntenConfig.gemaakt || 5) * 3 * multiplier);
-              scores.push({ avond_speler_id: ronde.uitdager_id, ronde_nummer: rondeNr, punten: finalPoints });
-            }
+          // Meerdere ronde: pot-gebaseerde berekening
+          // Pot = X * 3 * Y, waarbij X = aantal deelnemers, Y = puntenConfig.gemaakt
+          const X = rows.length;
+          const Y = rows[0].punten.gemaakt || 5;
+          const multiplier = rows[0].verdubbeld ? 2 : 1;
+          const pot = X * 3 * Y;
+
+          const deelnemerIds = rows.map(r => r.uitdager_id);
+          const natIds = rows.filter(r => !r.gemaakt).map(r => r.uitdager_id);
+          const natCount = natIds.length;
+
+          const resterend = pot - (natCount * 3 * Y);
+
+          // Niet-gemaakt spelers = nat deelnemers + niet-deelnemers (ontvangen aandeel resterende pot)
+          const nietGemaaktSpelers = actieveSpelersInRonde.filter(sid =>
+            !deelnemerIds.includes(sid) || natIds.includes(sid)
+          );
+          const aandeelPerSpeler = nietGemaaktSpelers.length > 0
+            ? Math.round(resterend / nietGemaaktSpelers.length)
+            : 0;
+
+          // Nat deelnemers: nat straf (3 * Y)
+          natIds.forEach(sid => {
+            scores.push({ avond_speler_id: sid, ronde_nummer: rondeNr, punten: Math.round(3 * Y * multiplier) });
           });
+          // Niet-gemaakt spelers (nat + niet-deelnemers): aandeel van resterende pot
+          nietGemaaktSpelers.forEach(sid => {
+            scores.push({ avond_speler_id: sid, ronde_nummer: rondeNr, punten: Math.round(aandeelPerSpeler * multiplier) });
+          });
+          // Gemaakt deelnemers: 0 punten (niks pushen)
         }
       });
 
@@ -169,6 +189,9 @@ function Spelavond() {
         verdubbelaar: as.verdubbelaar === true || as.verdubbelaar === 1 ? 1 : 0
       }));
 
+      // Aantal unieke rondes (Meerdere heeft meerdere rijen per ronde_nummer)
+      const aantalRondes = new Set(formattedRondes.map(r => r.ronde_nummer)).size;
+
       const avondObj = {
         id: spelavondData.id,
         datum: spelavondData.datum,
@@ -176,6 +199,7 @@ function Spelavond() {
         start_deler: spelavondData.start_deler,
         spelers: formattedSpelers,
         rondes: formattedRondes,
+        aantalRondes,
         scores
       };
 
@@ -452,7 +476,7 @@ function Spelavond() {
 
   const actieveSpelers = avond.spelers.filter(s => s.actief);
   const alleSpelers = avond.spelers;
-  const rondeNummer = (avond.rondes.length || 0) + 1;
+  const rondeNummer = (avond.aantalRondes || 0) + 1;
   const laatsteRondes = [...(avond.rondes || [])].reverse();
 
   // Dealer berekening
