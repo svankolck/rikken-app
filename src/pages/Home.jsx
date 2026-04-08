@@ -29,7 +29,7 @@ function Home({ user }) {
         const { data } = await supabase
           .from('spelavonden')
           .select('*, locaties(straat)')
-          .eq('status', 'afgerond')
+          .eq('status', 'afgelopen')
           .order('datum', { ascending: false })
           .limit(3);
         if (data) setRecenteAvonden(data);

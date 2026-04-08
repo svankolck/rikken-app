@@ -10,10 +10,28 @@ function NieuweAvond() {
   const [geselecteerdeSpelers, setGeselecteerdeSpelers] = useState([]);
   const [geselecteerdeLocatie, setGeselecteerdeLocatie] = useState('');
   const [loading, setLoading] = useState(false);
+  const [actiefAvond, setActiefAvond] = useState(null);
 
   useEffect(() => {
+    checkActiefAvond();
     loadData();
   }, []);
+
+  const checkActiefAvond = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('spelavonden')
+        .select('*, locaties(straat)')
+        .eq('status', 'actief')
+        .order('id', { ascending: false })
+        .limit(1);
+      if (!error && data && data.length > 0) {
+        setActiefAvond(data[0]);
+      }
+    } catch (err) {
+      console.error('Fout bij checken actieve avond:', err);
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -110,6 +128,24 @@ function NieuweAvond() {
       </header>
 
       <main className="pt-24 px-6 max-w-[428px] mx-auto">
+        {/* Actieve avond waarschuwing */}
+        {actiefAvond && (
+          <div className="mb-6 rounded-xl bg-orange-50 border border-orange-200 p-5">
+            <p className="text-sm font-bold text-orange-700 mb-1">Er is al een actieve avond!</p>
+            <p className="text-xs text-orange-600 mb-4">
+              Avond van {new Date(actiefAvond.datum).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' })}
+              {actiefAvond.locaties?.straat ? ` — ${actiefAvond.locaties.straat}` : ''}
+            </p>
+            <button
+              onClick={() => navigate(`/spelavond/${actiefAvond.id}`)}
+              className="w-full py-2 rounded-md text-sm font-bold text-white"
+              style={{ background: 'linear-gradient(135deg, #3953bd, #72489e)' }}
+            >
+              Ga verder met deze avond
+            </button>
+          </div>
+        )}
+
         {/* Datum Card */}
         <div className="glass-card rounded-xl p-6 shadow-[0_12px_40px_rgba(57,83,189,0.06)] mb-6">
           <div className="flex items-center gap-3 mb-3">
