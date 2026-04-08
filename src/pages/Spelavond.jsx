@@ -477,7 +477,11 @@ function Spelavond() {
   const actieveSpelers = avond.spelers.filter(s => s.actief);
   const alleSpelers = avond.spelers;
   const rondeNummer = (avond.aantalRondes || 0) + 1;
-  const laatsteRondes = [...(avond.rondes || [])].reverse();
+  // Dedupliceer op ronde_nummer — Meerdere heeft meerdere rijen per ronde
+  const uniekeRondes = (avond.rondes || []).filter((r, i, arr) =>
+    arr.findIndex(x => x.ronde_nummer === r.ronde_nummer) === i
+  );
+  const laatsteRondes = [...uniekeRondes].reverse();
 
   // Dealer berekening
   const getHuidigeDeler = () => {
