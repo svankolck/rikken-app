@@ -12,12 +12,22 @@ function Home({ user }) {
       try {
         const { data, error } = await supabase
           .from('spelavonden')
-          .select('*, locaties(straat)')
+          .select('id, datum, locatie_id, status')
           .eq('status', 'actief')
           .order('id', { ascending: false })
           .limit(1);
         if (!error && data && data.length > 0) {
-          setActiefAvond(data[0]);
+          const avond = data[0];
+          // Haal locatie apart op
+          if (avond.locatie_id) {
+            const { data: locData } = await supabase
+              .from('locaties')
+              .select('straat')
+              .eq('id', avond.locatie_id)
+              .single();
+            avond.locaties = locData || null;
+          }
+          setActiefAvond(avond);
         }
       } catch (err) {
         console.error('Fout bij checken actieve avond:', err);
@@ -28,11 +38,23 @@ function Home({ user }) {
       try {
         const { data } = await supabase
           .from('spelavonden')
-          .select('*, locaties(straat)')
+          .select('id, datum, locatie_id, status')
           .eq('status', 'afgelopen')
           .order('datum', { ascending: false })
           .limit(3);
-        if (data) setRecenteAvonden(data);
+        if (data && data.length > 0) {
+          // Haal locaties apart op
+          const locatieIds = [...new Set(data.map(a => a.locatie_id).filter(Boolean))];
+          let locatiesMap = {};
+          if (locatieIds.length > 0) {
+            const { data: locData } = await supabase
+              .from('locaties')
+              .select('id, straat')
+              .in('id', locatieIds);
+            (locData || []).forEach(l => { locatiesMap[l.id] = l; });
+          }
+          setRecenteAvonden(data.map(a => ({ ...a, locaties: locatiesMap[a.locatie_id] || null })));
+        }
       } catch {
         // Geen recente avonden
       }

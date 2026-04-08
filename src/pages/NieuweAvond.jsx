@@ -21,12 +21,21 @@ function NieuweAvond() {
     try {
       const { data, error } = await supabase
         .from('spelavonden')
-        .select('*, locaties(straat)')
+        .select('id, datum, locatie_id, status')
         .eq('status', 'actief')
         .order('id', { ascending: false })
         .limit(1);
       if (!error && data && data.length > 0) {
-        setActiefAvond(data[0]);
+        const avond = data[0];
+        if (avond.locatie_id) {
+          const { data: locData } = await supabase
+            .from('locaties')
+            .select('straat')
+            .eq('id', avond.locatie_id)
+            .single();
+          avond.locaties = locData || null;
+        }
+        setActiefAvond(avond);
       }
     } catch (err) {
       console.error('Fout bij checken actieve avond:', err);
